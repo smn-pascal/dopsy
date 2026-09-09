@@ -1,0 +1,16 @@
+{
+  "name": "@dopsy/docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev .",
+    "build": "vitepress build .",
+    "preview": "vitepress preview .",
+    "typecheck": "vitepress build .",
+    "format": "prettier --write .vitepress/config.ts .vitepress/theme/index.ts \"**/*.md\" package.json"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6",
+    "vitepress": "^1.6.4"
+  }
+}

@@ -1,28 +1,96 @@
 # Dopsy
 
-**Understand your containers.**
+> **Understand your containers.**
 
-Dopsy is an AI-powered, self-hosted diagnostic assistant for Docker environments. It combines a conversational interface with targeted, read-only access to container logs, metrics, events, health data, and configuration to help explain what happened and suggest practical next steps.
+Dopsy is a self-hosted, read-only diagnostic assistant for Docker. Ask what is wrong in plain language; Dopsy gathers focused evidence from container state, logs, and resource usage, then explains the likely cause and useful next steps.
 
-## Vision
+> [!WARNING]
+> Dopsy is an early development preview. Its security model and APIs are not yet considered stable. Keep it bound to localhost and do not expose it directly to the internet.
 
-Instead of sending every available log line to an AI model, Dopsy asks for only the data needed to investigate a specific question. A diagnosis can proceed in several focused steps: inspect current container state, examine a relevant time window, correlate events and metrics, and then present an evidence-based explanation.
+## Why Dopsy?
 
-## Planned V1
+Traditional log viewers show you what your containers printed. Dopsy is focused on the next question: **why did it happen?**
 
-- Chat-based diagnostics for Docker containers
-- Model-directed, multi-step investigation
-- Read-only Docker access
-- Focused collection of logs, metrics, events, and container metadata
-- Configurable local data retention
-- Self-hosted deployment
-- Bring your own AI model or API provider
+```text
+"Why does my API keep restarting?"
+        ↓
+model requests only the evidence it needs
+        ↓
+inspect + bounded logs + current stats
+        ↓
+Exit 137 + OOMKilled + memory pressure
+        ↓
+evidence-based diagnosis and recommendations
+```
 
-## Safety
+- **Read-only by design:** no exec, start, stop, restart, delete, deploy, or mutation tools.
+- **Agentic investigation:** a model can request another focused, read-only check when the first result raises a new question.
+- **Bring your own model:** use an OpenAI-compatible cloud, company, or local endpoint.
+- **Low overhead by default:** no permanent AI analysis and no metrics database in the first milestone.
+- **Explainable output:** deterministic Docker facts remain visible alongside the generated diagnosis.
 
-The first release is intentionally read-only. Dopsy will diagnose and recommend actions, but it will not restart, stop, delete, or modify containers.
+## Quick start
 
-## Status
+```bash
+git clone https://github.com/smn-pascal/dopsy.git
+cd dopsy
+cp .env.example .env
+docker compose up --build
+```
 
-Dopsy is in early development. Architecture, setup instructions, and contribution guidelines will be added as the first working version takes shape.
+Open [http://localhost:8080](http://localhost:8080).
 
+To try the built-in example without an API key or production containers, set this in `.env`:
+
+```dotenv
+DOPSY_DEMO_MODE=true
+```
+
+To connect a tool-capable OpenAI-compatible endpoint:
+
+```dotenv
+DOPSY_LLM_BASE_URL=https://api.example.com/v1
+DOPSY_LLM_API_KEY=replace-me
+DOPSY_LLM_MODEL=your-model
+```
+
+Provider credentials stay on the server and are never returned to the browser.
+Bounded log excerpts can still contain secrets. When an external provider is configured,
+the excerpts selected during a diagnosis are sent to that provider.
+
+## Security model
+
+The recommended Compose setup gives the Dopsy application **no Docker socket mount**. A separate companion process holds the socket, sanitizes container metadata, and permits only an exact allowlist of diagnostic `GET`/`HEAD` routes and query parameters. Broad endpoints such as container archive/export and every mutating HTTP method are rejected.
+
+This is deliberate: mounting `docker.sock` with `:ro` does not make the Docker API read-only. See [the read-only design](docs/security/read-only.md) for the threat model and current limitations.
+
+## Development
+
+The backend is written in Go. The web interface uses React, TypeScript, and Vite.
+
+```bash
+# terminal 1: demo API
+make dev-api
+
+# terminal 2: web UI
+pnpm install
+make dev-web
+```
+
+Run the verification suite before committing:
+
+```bash
+make test
+pnpm typecheck
+pnpm docs:build
+```
+
+## Project status
+
+The v0.1 development preview contains a complete first vertical slice: container listing, bounded inspection tools, an OpenAI-compatible tool-calling loop, short-lived server-side chat context, a local demo diagnosis, and the read-only proxy boundary. Historical metrics, authentication, multi-host support, and alerting are intentionally outside this milestone.
+
+See the [roadmap](ROADMAP.md), [documentation](docs/index.md), and [contribution guide](CONTRIBUTING.md).
+
+## License
+
+No open-source license has been selected yet. Until one is added, normal copyright rules apply even though the repository is public.
