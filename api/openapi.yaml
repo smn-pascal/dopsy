@@ -1,0 +1,82 @@
+openapi: 3.1.0
+info:
+  title: Dopsy API
+  version: 0.1.0
+paths:
+  /api/health:
+    get:
+      summary: Read application, Docker, and model status
+      responses:
+        "200":
+          description: Current status
+  /api/containers:
+    get:
+      summary: List visible Docker containers
+      responses:
+        "200":
+          description: Container summaries
+  /api/chat:
+    post:
+      summary: Run a bounded, read-only diagnosis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  minLength: 1
+                  maxLength: 8000
+                containerId:
+                  type: string
+                  pattern: "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+                conversationId:
+                  type: string
+                  description: Omit for a new conversation; reuse the returned value for a follow-up in the same container scope.
+                  maxLength: 64
+      responses:
+        "200":
+          description: Diagnosis, evidence, and completed tool steps
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conversationId, answer, evidence, steps]
+                properties:
+                  conversationId:
+                    type: string
+                  answer:
+                    type: string
+                  evidence:
+                    type: array
+                    items:
+                      type: object
+                      required: [label, value]
+                      properties:
+                        label: { type: string }
+                        value: { type: string }
+                        severity:
+                          type: string
+                          enum: [info, warning, critical]
+                  steps:
+                    type: array
+                    items:
+                      type: object
+                      required: [tool, summary]
+                      properties:
+                        tool: { type: string }
+                        summary: { type: string }
+        "400":
+          description: Invalid request
+        "404":
+          description: Conversation expired or does not exist
+        "409":
+          description: Conversation scope mismatch or concurrent use
+        "429":
+          description: Diagnosis or conversation capacity is temporarily exhausted
+        "502":
+          description: Docker or model provider failed
