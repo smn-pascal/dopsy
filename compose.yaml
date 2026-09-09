@@ -1,0 +1,75 @@
+name: dopsy
+
+services:
+  dopsy:
+    build:
+      context: .
+      target: dopsy
+    environment:
+      DOPSY_ADDR: ":8080"
+      DOPSY_TIMEZONE: "${DOPSY_TIMEZONE:-UTC}"
+      DOPSY_DOCKER_HOST: "http://docker-proxy:2375"
+      DOPSY_DEMO_MODE: "${DOPSY_DEMO_MODE:-false}"
+      DOPSY_LLM_BASE_URL: "${DOPSY_LLM_BASE_URL:-https://api.openai.com/v1}"
+      DOPSY_LLM_API_KEY: "${DOPSY_LLM_API_KEY:-}"
+      DOPSY_LLM_MODEL: "${DOPSY_LLM_MODEL:-}"
+      DOPSY_MAX_AGENT_STEPS: "${DOPSY_MAX_AGENT_STEPS:-6}"
+      DOPSY_MAX_TOOL_CALLS: "${DOPSY_MAX_TOOL_CALLS:-10}"
+      DOPSY_MAX_TOOL_OUTPUT_BYTES: "${DOPSY_MAX_TOOL_OUTPUT_BYTES:-524288}"
+      DOPSY_MAX_LOG_LINES: "${DOPSY_MAX_LOG_LINES:-2000}"
+      DOPSY_MAX_LOG_BYTES: "${DOPSY_MAX_LOG_BYTES:-262144}"
+      DOPSY_CONVERSATION_TTL: "${DOPSY_CONVERSATION_TTL:-30m}"
+      DOPSY_MAX_CONVERSATIONS: "${DOPSY_MAX_CONVERSATIONS:-128}"
+      DOPSY_MAX_CONVERSATION_TURNS: "${DOPSY_MAX_CONVERSATION_TURNS:-12}"
+      DOPSY_MAX_CONVERSATION_BYTES: "${DOPSY_MAX_CONVERSATION_BYTES:-131072}"
+      DOPSY_MAX_CONCURRENT_DIAGNOSES: "${DOPSY_MAX_CONCURRENT_DIAGNOSES:-2}"
+      DOPSY_REQUEST_TIMEOUT: "${DOPSY_REQUEST_TIMEOUT:-60s}"
+      DOPSY_WEB_DIR: "/app/web"
+    ports:
+      - "127.0.0.1:${DOPSY_PORT:-8080}:8080"
+    depends_on:
+      docker-proxy:
+        condition: service_healthy
+    networks:
+      - app
+      - docker-api
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  docker-proxy:
+    build:
+      context: .
+      target: dopsy-proxy
+    environment:
+      DOPSY_PROXY_ADDR: ":2375"
+      DOPSY_DOCKER_SOCKET: "/var/run/docker.sock"
+    expose:
+      - "2375"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-api
+    read_only: true
+    tmpfs:
+      - /tmp:size=4m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "/dopsy-proxy", "healthcheck"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+    restart: unless-stopped
+
+networks:
+  app:
+  docker-api:
+    internal: true
