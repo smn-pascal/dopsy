@@ -278,3 +278,18 @@ func TestFallbackDoesNotInventLogEvidenceOrMatchRoomAsOOM(t *testing.T) {
 		t.Fatalf("fallback invented log support: %q", diagnosis.Answer)
 	}
 }
+
+func TestAgentRejectsUnboundedHistoricalLogWindows(t *testing.T) {
+	t.Parallel()
+	diagnoser := New(&fakeGateway{}, nil, Options{})
+	tests := []ToolCall{
+		{Name: "get_container_logs", Arguments: `{"containerId":"demo-api","tail":100,"since":"2026-09-09T00:00:00Z"}`},
+		{Name: "get_container_logs", Arguments: `{"containerId":"demo-api","tail":100,"since":"2026-09-07T00:00:00Z","until":"2026-09-09T00:00:01Z"}`},
+	}
+	for _, call := range tests {
+		result, _, step, success := diagnoser.executeTool(context.Background(), "demo-api", call)
+		if success || !strings.Contains(result, `"error"`) || step.Summary != "Request rejected or unavailable" {
+			t.Fatalf("unbounded window was not rejected: success=%v result=%s step=%+v", success, result, step)
+		}
+	}
+}

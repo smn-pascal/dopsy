@@ -386,6 +386,23 @@ func TestSanitizeStatsPreventsUnsignedUnderflow(t *testing.T) {
 	}
 }
 
+func TestSanitizeStatsUsesCgroupV1TotalInactiveFile(t *testing.T) {
+	t.Parallel()
+	var raw rawStats
+	input := `{
+		"cpu_stats":{},
+		"precpu_stats":{},
+		"memory_stats":{"usage":1000,"limit":2000,"stats":{"inactive_file":100,"total_inactive_file":300}}
+	}`
+	if err := json.Unmarshal([]byte(input), &raw); err != nil {
+		t.Fatal(err)
+	}
+	stats := sanitizeStats(raw)
+	if stats.MemoryUsage != 700 || stats.MemoryPercent != 35 {
+		t.Fatalf("cgroup v1 working set = %d bytes (%.1f%%), want 700 bytes (35%%)", stats.MemoryUsage, stats.MemoryPercent)
+	}
+}
+
 func dockerLogFrame(stream byte, payload []byte) []byte {
 	frame := make([]byte, 8+len(payload))
 	frame[0] = stream

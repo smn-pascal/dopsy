@@ -313,7 +313,8 @@ type rawStats struct {
 		Usage uint64 `json:"usage"`
 		Limit uint64 `json:"limit"`
 		Stats struct {
-			InactiveFile uint64 `json:"inactive_file"`
+			InactiveFile      uint64 `json:"inactive_file"`
+			TotalInactiveFile uint64 `json:"total_inactive_file"`
 		} `json:"stats"`
 	} `json:"memory_stats"`
 }
@@ -337,9 +338,13 @@ func sanitizeStats(raw rawStats) domain.Stats {
 		cpuPercent = clampPercent(cpuPercent, float64(cores)*100)
 	}
 	memoryUsage := raw.MemoryStats.Usage
-	if raw.MemoryStats.Stats.InactiveFile < memoryUsage {
-		memoryUsage -= raw.MemoryStats.Stats.InactiveFile
-	} else if raw.MemoryStats.Stats.InactiveFile > 0 {
+	inactiveFile := raw.MemoryStats.Stats.InactiveFile
+	if raw.MemoryStats.Stats.TotalInactiveFile > 0 {
+		inactiveFile = raw.MemoryStats.Stats.TotalInactiveFile
+	}
+	if inactiveFile < memoryUsage {
+		memoryUsage -= inactiveFile
+	} else if inactiveFile > 0 {
 		memoryUsage = 0
 	}
 	var memoryPercent float64
