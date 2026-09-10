@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">Dopsy — read-only diagnostics for Docker</title>
+  <desc id="desc">Dark forest social card with the mint Dopsy mark and product description</desc>
+  <rect width="1280" height="640" fill="#071A15"/>
+  <path d="M0 128h1280M0 512h1280M128 0v640M1152 0v640" fill="none" stroke="#10352A" stroke-width="1"/>
+  <rect x="64" y="64" width="1152" height="512" rx="32" fill="#0B241C" stroke="#1B4838" stroke-width="2"/>
+
+  <g transform="translate(112 192) scale(4)">
+    <rect x="1" y="1" width="62" height="62" rx="15" fill="#071A15" stroke="#1B4838" stroke-width="2"/>
+    <path d="M19.5 17.5v29h12.75C41.5 46.5 49 40.01 49 32S41.5 17.5 32.25 17.5H19.5Z" fill="none" stroke="#7EE2B8" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M28.5 27.5h9M28.5 36.5h12.5" fill="none" stroke="#7EE2B8" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(330 176) scale(3.25)" fill="none" stroke="#F1F7F4" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M88 29.5A11.8 11.8 0 1 0 88 46.5M89 16v34"/>
+    <circle cx="104" cy="38" r="12"/>
+    <path d="M124 59V27M125 30.5A11.8 11.8 0 1 1 125 45.5"/>
+    <path d="M177.5 30.5c-3-3-7-4.5-11-4.5-5.2 0-9 2.6-9 6.5 0 8.8 20.5 3.1 20.5 11.3 0 4.1-4.4 6.7-9.7 6.7-4.5 0-8.7-1.6-11.3-4.5"/>
+    <path d="m191 27 10 22M212 27l-14 32"/>
+  </g>
+
+  <path d="M550 394h72" stroke="#7EE2B8" stroke-width="4" stroke-linecap="round"/>
+  <text x="550" y="455" fill="#F1F7F4" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="34" font-weight="540" letter-spacing="-0.5">Read-only diagnostics for Docker.</text>
+  <text x="550" y="502" fill="#A9BBB2" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="21" font-weight="450">Self-hosted · open source · evidence-first</text>
+</svg>

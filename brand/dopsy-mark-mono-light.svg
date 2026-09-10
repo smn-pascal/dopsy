@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Dopsy mark</title>
+  <desc id="desc">Single-color light Dopsy mark</desc>
+  <path d="M15.5 13.5v37h16.25C43.49 50.5 53 42.22 53 32S43.49 13.5 31.75 13.5H15.5Z" fill="none" stroke="#F1F7F4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M27 26.5h10M27 37.5h14" fill="none" stroke="#F1F7F4" stroke-width="3.5" stroke-linecap="round"/>
+</svg>
