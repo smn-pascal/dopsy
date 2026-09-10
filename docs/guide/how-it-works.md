@@ -1,22 +1,37 @@
 # How it works
 
-Dopsy performs analysis only when somebody asks a question.
+Dopsy performs two small reads when the interface opens: it checks service and
+Docker connectivity, then loads the current container list. It does not inspect
+a container, read logs or statistics, or contact the configured model until you
+submit a diagnostic question.
 
 ```text
-Question
-  -> model chooses a read-only tool
-  -> Dopsy validates and limits the request
-  -> restricted Docker proxy reads approved data
-  -> Dopsy removes sensitive inspect fields
-  -> model receives compact evidence
-  -> diagnosis and recommendations
+page load
+  -> health and Docker connectivity check
+  -> bounded container list
 ```
 
-The model never connects to Docker itself. It can only request the small set of tools implemented and validated by Dopsy. Every diagnosis has hard limits for agent rounds, log lines, bytes, and time.
+For a diagnosis, the investigation continues through the constrained tool path:
 
-Follow-up questions use short-lived conversation context stored only in the Dopsy
-server process. The browser sends a random conversation identifier, not an editable
-copy of earlier messages or tool evidence. Raw tool output is not retained as chat
-history, and all in-memory sessions disappear when Dopsy restarts.
+```text
+question
+  -> provider requests a defined read-only tool
+  -> Dopsy validates scope and limits
+  -> companion proxy permits an approved Docker read
+  -> inspect data is reduced and sanitized
+  -> provider receives bounded evidence
+  -> answer, evidence, and tool summary
+```
 
-The first release does not store historical metrics. A diagnosis must clearly say when the requested historical evidence is unavailable.
+The provider never connects to Docker. It can request only the tools implemented
+by Dopsy: container listing, sanitized inspection, bounded log reads, and a
+non-streaming statistics snapshot. Agent rounds, tool calls, log windows, bytes,
+and request duration all have server-side limits.
+
+Follow-up questions use short-lived context in the Dopsy server process. The
+server issues an opaque conversation identifier; the browser returns it only for
+the same container scope. Raw tool output is not retained as chat history, and
+all in-memory sessions disappear when Dopsy restarts.
+
+The first release does not store historical metrics. A diagnosis must state when
+the requested evidence is unavailable.

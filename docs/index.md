@@ -4,30 +4,40 @@ layout: home
 hero:
   name: Dopsy
   text: Understand your containers.
-  tagline: Ask what happened. Get an evidence-based diagnosis without giving an AI permission to change your system.
+  tagline: Read-only Docker diagnostics, with the supporting evidence attached.
   actions:
     - theme: brand
-      text: Get started
+      text: Start locally
       link: /guide/getting-started
     - theme: alt
-      text: View on GitHub
-      link: https://github.com/smn-pascal/dopsy
+      text: Read the security model
+      link: /security/read-only
 
 features:
-  - title: Ask, don't search
-    details: Describe a problem in plain language. Dopsy gathers only the container data needed for that question.
-  - title: Read-only by design
-    details: The diagnostic agent receives no start, stop, restart, exec, delete, or deployment tools.
-  - title: Bring your own model
-    details: Connect an OpenAI-compatible cloud, company, or local endpoint. Dopsy does not operate a central AI service.
+  - title: Focused reads
+    details: Dopsy requests bounded container state, logs, or statistics for the question instead of forwarding an unrestricted data dump.
+  - title: Explicit boundary
+    details: The diagnostic path has no start, stop, restart, exec, delete, create, or deployment tools.
+  - title: Operator-owned provider
+    details: Connect an OpenAI-compatible endpoint you control. Dopsy does not run a hosted model service.
 ---
 
-## The first milestone
+## Current scope
 
-Dopsy currently focuses on one complete path: list containers, inspect their state, retrieve bounded logs and statistics, and explain the evidence in a diagnostic chat.
+Dopsy v0.1 covers one path end to end: list containers, inspect sanitized state,
+read bounded logs or a live statistics snapshot, and return a diagnosis with the
+evidence used. It does not collect historical metrics or modify containers.
 
-## Evidence, not guesses
+## A diagnosis you can inspect
 
 ![Dopsy showing an evidence-based out-of-memory diagnosis](/images/dopsy-diagnosis.png)
 
-This example runs entirely against Dopsy's deterministic local demo data. The same workspace connects each real diagnosis to the container facts and read-only tools that support it.
+The screenshot uses deterministic local demo data. In live mode, the same view
+lists the read-only operations performed and the resulting container facts.
+
+## Know the boundary
+
+The application container does not mount the Docker socket. A companion proxy
+holds it and permits only an exact set of diagnostic reads. This narrows the
+exposed API surface; it is not a perfect sandbox. Review the
+[read-only design](/security/read-only) before connecting a production host.
