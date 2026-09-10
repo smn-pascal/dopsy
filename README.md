@@ -109,9 +109,9 @@ pnpm docs:build
 
 ## Project status
 
-The v0.1 development preview contains a complete first vertical slice: container listing, bounded inspection tools, an OpenAI-compatible tool-calling loop, short-lived server-side chat context, a local demo diagnosis, and the read-only proxy boundary. Historical metrics, authentication, multi-host support, and alerting are intentionally outside this milestone.
+The v0.1.0 development preview contains a complete first vertical slice: container listing, bounded inspection tools, an OpenAI-compatible tool-calling loop, short-lived server-side chat context, a local demo diagnosis, and the read-only proxy boundary. Historical metrics, authentication, multi-host support, and alerting are intentionally outside this milestone.
 
-See the [roadmap](ROADMAP.md), [live documentation](https://smn-pascal.github.io/dopsy/), and [contribution guide](CONTRIBUTING.md).
+See the [roadmap](ROADMAP.md), [changelog](CHANGELOG.md), [live documentation](https://smn-pascal.github.io/dopsy/), and [contribution guide](CONTRIBUTING.md).
 
 ## License
 

@@ -18,5 +18,15 @@ The API uses safe demo data when started through `make dev-api`, so a Docker dae
 - Update `docs/` with every public feature or configuration change.
 - Never weaken the read-only Docker allowlist to make a feature easier.
 - Never include real logs, API keys, environment files, or other secrets in fixtures.
+- Use a short, imperative commit subject and keep unrelated changes separate.
 
-Run the commands in `AGENTS.md` before requesting review.
+Run the full verification suite before requesting review:
+
+```bash
+go test ./...
+go vet ./...
+pnpm typecheck
+pnpm test:web
+pnpm build:web
+pnpm docs:build
+```
