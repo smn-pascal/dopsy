@@ -2,5 +2,5 @@
   <title id="title">Dopsy mark</title>
   <desc id="desc">Single-color dark Dopsy mark</desc>
   <path d="M15.5 13.5v37h16.25C43.49 50.5 53 42.22 53 32S43.49 13.5 31.75 13.5H15.5Z" fill="none" stroke="#0B241C" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M27 26.5h10M27 37.5h14" fill="none" stroke="#0B241C" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M24.5 26.5h18M24.5 37.5h18" fill="none" stroke="#0B241C" stroke-width="3.5" stroke-linecap="round"/>
 </svg>

@@ -3,5 +3,5 @@
   <desc id="desc">A letter D shaped container with two diagnostic lines</desc>
   <rect x="1" y="1" width="62" height="62" rx="15" fill="#0B241C" stroke="#1B4838" stroke-width="2"/>
   <path d="M19.5 17.5v29h12.75C41.5 46.5 49 40.01 49 32S41.5 17.5 32.25 17.5H19.5Z" fill="none" stroke="#7EE2B8" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M28.5 27.5h9M28.5 36.5h12.5" fill="none" stroke="#7EE2B8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M27.5 27.5h12M27.5 36.5h12" fill="none" stroke="#7EE2B8" stroke-width="3" stroke-linecap="round"/>
 </svg>
