@@ -2,10 +2,18 @@
 
 > **Understand your containers.**
 
+[![CI](https://github.com/smn-pascal/dopsy/actions/workflows/ci.yml/badge.svg)](https://github.com/smn-pascal/dopsy/actions/workflows/ci.yml)
+[![Documentation](https://github.com/smn-pascal/dopsy/actions/workflows/docs.yml/badge.svg)](https://smn-pascal.github.io/dopsy/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-64e6bd.svg)](LICENSE)
+
 Dopsy is a self-hosted, read-only diagnostic assistant for Docker. Ask what is wrong in plain language; Dopsy gathers focused evidence from container state, logs, and resource usage, then explains the likely cause and useful next steps.
 
 > [!WARNING]
 > Dopsy is an early development preview. Its security model and APIs are not yet considered stable. Keep it bound to localhost and do not expose it directly to the internet.
+
+![Dopsy showing an evidence-based out-of-memory diagnosis](docs/public/images/dopsy-diagnosis.png)
+
+The screenshot uses Dopsy's built-in local demo. No Docker daemon, production logs, or external AI provider is involved.
 
 ## Why Dopsy?
 
@@ -29,6 +37,18 @@ evidence-based diagnosis and recommendations
 - **Low overhead by default:** no permanent AI analysis and no metrics database in the first milestone.
 - **Explainable output:** deterministic Docker facts remain visible alongside the generated diagnosis.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    Browser[Diagnostic chat] --> App[Dopsy application]
+    App -->|tool calls| Model[Your AI provider]
+    App -->|approved reads only| Proxy[Restricted Docker proxy]
+    Proxy -->|sanitized state, logs, stats| Docker[Docker Engine]
+```
+
+The model never receives Docker credentials and cannot call Docker directly. Dopsy validates and bounds each diagnostic request before the companion proxy reaches the Docker API.
+
 ## Quick start
 
 ```bash
@@ -39,6 +59,8 @@ docker compose up --build
 ```
 
 Open [http://localhost:8080](http://localhost:8080).
+
+For installation details and configuration, read the [live documentation](https://smn-pascal.github.io/dopsy/).
 
 To try the built-in example without an API key or production containers, set this in `.env`:
 
@@ -89,7 +111,7 @@ pnpm docs:build
 
 The v0.1 development preview contains a complete first vertical slice: container listing, bounded inspection tools, an OpenAI-compatible tool-calling loop, short-lived server-side chat context, a local demo diagnosis, and the read-only proxy boundary. Historical metrics, authentication, multi-host support, and alerting are intentionally outside this milestone.
 
-See the [roadmap](ROADMAP.md), [documentation](docs/index.md), and [contribution guide](CONTRIBUTING.md).
+See the [roadmap](ROADMAP.md), [live documentation](https://smn-pascal.github.io/dopsy/), and [contribution guide](CONTRIBUTING.md).
 
 ## License
 

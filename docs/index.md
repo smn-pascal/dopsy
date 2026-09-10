@@ -25,3 +25,9 @@ features:
 ## The first milestone
 
 Dopsy currently focuses on one complete path: list containers, inspect their state, retrieve bounded logs and statistics, and explain the evidence in a diagnostic chat.
+
+## Evidence, not guesses
+
+![Dopsy showing an evidence-based out-of-memory diagnosis](/images/dopsy-diagnosis.png)
+
+This example runs entirely against Dopsy's deterministic local demo data. The same workspace connects each real diagnosis to the container facts and read-only tools that support it.
