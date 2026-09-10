@@ -93,4 +93,4 @@ See the [roadmap](ROADMAP.md), [documentation](docs/index.md), and [contribution
 
 ## License
 
-No open-source license has been selected yet. Until one is added, normal copyright rules apply even though the repository is public.
+Dopsy is available under the [MIT License](LICENSE).
