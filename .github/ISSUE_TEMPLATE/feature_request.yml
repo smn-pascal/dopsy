@@ -1,0 +1,33 @@
+name: Feature request
+description: Propose a focused improvement to Dopsy
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What diagnostic workflow or user problem is currently difficult?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed experience
+      description: Describe the outcome from the operator's perspective.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Diagnostic evidence needed
+      description: Which read-only Docker facts would support this feature?
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Project boundaries
+      options:
+        - label: This proposal keeps Dopsy's diagnostic tools read-only.
+          required: true
+        - label: I checked the roadmap and existing issues first.
+          required: true

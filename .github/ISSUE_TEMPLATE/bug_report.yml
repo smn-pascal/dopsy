@@ -1,0 +1,55 @@
+name: Bug report
+description: Report a reproducible problem in Dopsy
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Dopsy. Remove credentials and private container data before submitting anything publicly.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the problem and its user-visible impact.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Start Dopsy with ...
+        2. Select ...
+        3. Ask ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include the Dopsy version or commit, Docker version, Compose version, host OS, and AI provider type where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized logs or screenshots
+      description: Do not include API keys, tokens, private URLs, or production log data.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched for an existing issue describing this problem.
+          required: true
+        - label: I removed secrets and private infrastructure data from this report.
+          required: true
+        - label: This is not a private security vulnerability.
+          required: true
