@@ -5,6 +5,21 @@ All notable changes to Dopsy are documented in this file. The project follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-10
+
+### Changed
+
+- Reworked the diagnostic interface around a cleaner light workspace,
+  restrained forest-green navigation, and clearer information hierarchy.
+- Refined the Dopsy mark and wordmark for more balanced spacing at app,
+  documentation, and favicon sizes.
+- Made supporting evidence and investigation progress easier to scan without
+  changing the read-only diagnostic boundary.
+- Applied the visual identity consistently across the application,
+  documentation, README, favicons, and social-preview artwork.
+- Clarified setup, provider data flow, demo behavior, and the limitations of
+  the v0.1 preview.
+
 ## [0.1.0] - 2026-09-10
 
 ### Added
@@ -31,5 +46,6 @@ All notable changes to Dopsy are documented in this file. The project follows
 - Agent rounds, tool calls, log windows, output sizes, request time, and
   concurrent diagnoses are bounded.
 
-[Unreleased]: https://github.com/smn-pascal/dopsy/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/smn-pascal/dopsy/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/smn-pascal/dopsy/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/smn-pascal/dopsy/releases/tag/v0.1.0
