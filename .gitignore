@@ -9,4 +9,5 @@ dist/
 coverage/
 .vitepress/cache/
 .vitepress/dist/
+.vitepress/.temp/
 bin/

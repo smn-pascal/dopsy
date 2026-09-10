@@ -3,7 +3,12 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "Dopsy",
   description: "Understand your containers.",
+  base: "/dopsy/",
   cleanUrls: true,
+  lastUpdated: true,
+  sitemap: {
+    hostname: "https://smn-pascal.github.io/dopsy/",
+  },
   head: [["meta", { name: "theme-color", content: "#0d1513" }]],
   themeConfig: {
     nav: [
@@ -32,6 +37,13 @@ export default defineConfig({
     socialLinks: [
       { icon: "github", link: "https://github.com/smn-pascal/dopsy" },
     ],
+    search: {
+      provider: "local",
+    },
+    editLink: {
+      pattern: "https://github.com/smn-pascal/dopsy/edit/main/docs/:path",
+      text: "Edit this page on GitHub",
+    },
     footer: {
       message:
         "Self-hosted container diagnostics. Your infrastructure, your model.",
