@@ -1,8 +1,8 @@
 # Dopsy brand
 
-Dopsy's identity is quiet, technical, and evidence-led. The mark combines a
-lowercase-friendly **D** silhouette, a container boundary, and two diagnostic
-lines. It deliberately avoids robots, eyes, sparkles, brains, and Docker's whale.
+Dopsy uses a compact container-shaped **D**, two evidence lines, and a custom
+lowercase wordmark. The system is designed to stay legible from favicon size to
+release artwork.
 
 ## Assets
 
@@ -24,15 +24,19 @@ the canonical assets in this directory.
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| Forest 950 | `#071A15` | Main application and documentation background |
-| Forest 900 | `#0B241C` | Elevated surfaces and the icon field |
-| Forest 700 | `#1B4838` | Hairlines and quiet borders |
-| Mint 400 | `#7EE2B8` | Brand mark and focused actions |
-| Ink | `#F1F7F4` | Primary text on dark backgrounds |
-| Mist | `#A9BBB2` | Secondary text |
+| Forest 950 | `#071A15` | Compact dark brand surfaces and the mark field |
+| Forest 900 | `#0B241C` | Dark navigation and high-contrast brand use |
+| Forest 700 | `#1B4838` | Borders on dark surfaces |
+| Mint 400 | `#7EE2B8` | Mark and focused accents on dark surfaces |
+| Paper | `#FFFFFF` | Primary workspace |
+| Canvas | `#F5F7F6` | Application background |
+| Ink | `#17241F` | Primary text on light surfaces |
+| Muted | `#617169` | Secondary text |
+| Line | `#DDE5E0` | Quiet borders and dividers |
 
-Mint is a signal, not a fill color for large areas. Error and warning colors are
-product semantics and should not be used as brand decoration.
+Green establishes identity; white space carries the interface. Mint is reserved
+for focus, status, and compact brand moments—not large page fills. Error and
+warning colors are product semantics and should not be used as decoration.
 
 ## Spacing and size
 
@@ -43,7 +47,8 @@ product semantics and should not be used as brand decoration.
 
 ## Usage
 
-- Use the dark logo on Forest 950/900 and the light logo on white or pale surfaces.
+- Use `dopsy-logo-dark.svg` on dark surfaces and `dopsy-logo-light.svg` on
+  light surfaces.
 - Prefer the standalone mark where the product name is already visible nearby.
 - Preserve the supplied proportions, stroke widths, and colors.
 - Never rotate, add glow, add gradients, place the mark inside another container,

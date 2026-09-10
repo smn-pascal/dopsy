@@ -1,41 +1,46 @@
-# Dopsy
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/dopsy-logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="brand/dopsy-logo-light.svg">
+    <img alt="Dopsy" src="brand/dopsy-logo-light.svg" width="220">
+  </picture>
+</p>
+<p align="center"><strong>Read-only Docker diagnostics, with the evidence attached.</strong></p>
+<p align="center">
+  <a href="https://github.com/smn-pascal/dopsy/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/smn-pascal/dopsy/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://smn-pascal.github.io/dopsy/"><img alt="Documentation" src="https://github.com/smn-pascal/dopsy/actions/workflows/docs.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-64e6bd.svg"></a>
+</p>
 
-> **Understand your containers.**
-
-[![CI](https://github.com/smn-pascal/dopsy/actions/workflows/ci.yml/badge.svg)](https://github.com/smn-pascal/dopsy/actions/workflows/ci.yml)
-[![Documentation](https://github.com/smn-pascal/dopsy/actions/workflows/docs.yml/badge.svg)](https://smn-pascal.github.io/dopsy/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-64e6bd.svg)](LICENSE)
-
-Dopsy is a self-hosted, read-only diagnostic assistant for Docker. Ask what is wrong in plain language; Dopsy gathers focused evidence from container state, logs, and resource usage, then explains the likely cause and useful next steps.
+Dopsy is a self-hosted diagnostic interface for Docker. Ask a question in plain language; Dopsy gathers bounded, read-only evidence from container state, recent logs, and current resource usage, then shows both its diagnosis and the facts behind it.
 
 > [!WARNING]
-> Dopsy is an early development preview. Its security model and APIs are not yet considered stable. Keep it bound to localhost and do not expose it directly to the internet.
+> Dopsy v0.1 is a development preview and does not include authentication. Keep it bound to localhost; do not expose it directly to the internet.
 
 ![Dopsy showing an evidence-based out-of-memory diagnosis](docs/public/images/dopsy-diagnosis.png)
 
-The screenshot uses Dopsy's built-in local demo. No Docker daemon, production logs, or external AI provider is involved.
+_Deterministic local demo; no Docker daemon, production data, or external model provider._
 
 ## Why Dopsy?
 
-Traditional log viewers show you what your containers printed. Dopsy is focused on the next question: **why did it happen?**
+Logs tell you what a container printed. Dopsy connects those records to container state and current resource facts so you can investigate why something happened.
 
 ```text
 "Why does my API keep restarting?"
         ↓
-model requests only the evidence it needs
+configured model selects from bounded read tools
         ↓
 inspect + bounded logs + current stats
         ↓
 Exit 137 + OOMKilled + memory pressure
         ↓
-evidence-based diagnosis and recommendations
+diagnosis, next checks, and visible evidence
 ```
 
-- **Read-only by design:** no exec, start, stop, restart, delete, deploy, or mutation tools.
-- **Agentic investigation:** a model can request another focused, read-only check when the first result raises a new question.
-- **Bring your own model:** use an OpenAI-compatible cloud, company, or local endpoint.
-- **Low overhead by default:** no permanent AI analysis and no metrics database in the first milestone.
-- **Explainable output:** deterministic Docker facts remain visible alongside the generated diagnosis.
+- **Read-only boundary:** no exec, start, stop, restart, delete, create, or deployment operations.
+- **Bounded investigations:** rounds, tool calls, log windows, lines, bytes, and request time are capped.
+- **Provider choice:** connect an OpenAI-compatible cloud, company, or local endpoint.
+- **Evidence stays visible:** deterministic Docker facts are shown alongside the model-generated explanation.
 
 ## Architecture
 
@@ -109,7 +114,7 @@ pnpm docs:build
 
 ## Project status
 
-The v0.1.0 development preview contains a complete first vertical slice: container listing, bounded inspection tools, an OpenAI-compatible tool-calling loop, short-lived server-side chat context, a local demo diagnosis, and the read-only proxy boundary. Historical metrics, authentication, multi-host support, and alerting are intentionally outside this milestone.
+Dopsy is pre-1.0 software. The current preview covers one diagnostic path end to end: container discovery, bounded inspection, recent logs, current resource statistics, model-guided tool calls, and visible supporting evidence. Historical metrics, authentication, multi-host operation, alerting, and automated remediation are not implemented.
 
 See the [roadmap](ROADMAP.md), [changelog](CHANGELOG.md), [live documentation](https://smn-pascal.github.io/dopsy/), and [contribution guide](CONTRIBUTING.md).
 
