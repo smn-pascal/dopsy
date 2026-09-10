@@ -19,35 +19,29 @@ import type {
 const sampleQuestions = [
   {
     icon: "pulse",
-    title: "Find the bottleneck",
+    title: "Resource pressure",
     prompt: "Which container is using the most resources, and why?",
   },
   {
     icon: "history",
-    title: "Explain a restart",
+    title: "Unexpected restart",
     prompt: "Why did this container restart, and what should I check next?",
   },
   {
     icon: "logs",
-    title: "Investigate errors",
+    title: "Recent errors",
     prompt: "Are there any important errors in the recent logs?",
   },
 ] as const;
 
 const loadingSteps = [
-  "Preparing the diagnostic context",
-  "Read-only analysis in progress",
-  "Waiting for the diagnostic response",
+  "Reading container state",
+  "Checking bounded evidence",
+  "Preparing the diagnosis",
 ];
 
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
-    logo: (
-      <>
-        <path d="M8.2 5.6h7.6a4.2 4.2 0 0 1 0 8.4H8.2V5.6Z" />
-        <path d="M8.2 9.8h5.4" />
-      </>
-    ),
     menu: <path d="M4 7h16M4 12h16M4 17h16" />,
     close: <path d="m6 6 12 12M18 6 6 18" />,
     search: (
@@ -73,12 +67,6 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
         <path d="M8 8h8M8 12h8M8 16h5" />
       </>
     ),
-    sparkles: (
-      <>
-        <path d="m12 3 .8 2.2L15 6l-2.2.8L12 9l-.8-2.2L9 6l2.2-.8L12 3Z" />
-        <path d="m18 12 .6 1.4L20 14l-1.4.6L18 16l-.6-1.4L16 14l1.4-.6L18 12ZM6 11l1.2 3.8L11 16l-3.8 1.2L6 21l-1.2-3.8L1 16l3.8-1.2L6 11Z" />
-      </>
-    ),
     send: (
       <>
         <path d="m4 4 17 8-17 8 3-8-3-8Z" />
@@ -97,12 +85,6 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
         <path d="M18.1 16A7 7 0 1 1 19 8l1 4" />
       </>
     ),
-    bot: (
-      <>
-        <rect x="4" y="7" width="16" height="12" rx="4" />
-        <path d="M12 3v4M8.5 12h.01M15.5 12h.01M9 16h6" />
-      </>
-    ),
     copy: (
       <>
         <rect x="8" y="8" width="11" height="11" rx="2" />
@@ -114,11 +96,6 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
       <>
         <path d="M10.3 4.2 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z" />
         <path d="M12 9v4M12 17h.01" />
-      </>
-    ),
-    tool: (
-      <>
-        <path d="M14.7 6.3a4 4 0 0 0-5-5L12 3.6 9.6 6 7.3 3.7a4 4 0 0 0 5 5l-7.6 7.6a2.1 2.1 0 0 0 3 3l7.6-7.6a4 4 0 0 0 5-5L18 6l-2.4-2.4 2.3-2.3" />
       </>
     ),
     external: (
@@ -149,12 +126,9 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
 
 function Logo() {
   return (
-    <div className="brand" aria-label="Dopsy home">
-      <span className="brand-mark">
-        <Icon name="logo" size={24} />
-      </span>
-      <span className="brand-word">dopsy</span>
-      <span className="version">v0.1</span>
+    <div className="brand" aria-label="Dopsy">
+      <img className="brand-logo" src="/brand/dopsy-logo.svg" alt="Dopsy" />
+      <span className="version">v0.1.1</span>
     </div>
   );
 }
@@ -380,20 +354,69 @@ function Sidebar({
   );
 }
 
-function EvidenceGrid({ evidence }: { evidence: Evidence[] }) {
+function EvidenceGrid({
+  evidence,
+  className = "",
+}: {
+  evidence: Evidence[];
+  className?: string;
+}) {
   if (evidence.length === 0) return null;
   return (
-    <div className="evidence-grid" aria-label="Evidence">
-      {evidence.map((item, index) => (
-        <div
-          className={`evidence-card ${item.severity ?? "info"}`}
-          key={`${item.label}-${index}`}
-        >
-          <span>{item.label}</span>
-          <strong>{item.value}</strong>
+    <section className={`evidence ${className}`} aria-label="Evidence">
+      <h3>Evidence</h3>
+      <dl>
+        {evidence.map((item, index) => (
+          <div
+            className={`evidence-row ${item.severity ?? "info"}`}
+            key={`${item.label}-${index}`}
+          >
+            <dt>{item.label}</dt>
+            <dd>{item.value}</dd>
+            <span className="sr-only">Severity: {item.severity ?? "info"}</span>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function EvidenceInspector({
+  evidence,
+  hasConversation,
+}: {
+  evidence: Evidence[];
+  hasConversation: boolean;
+}) {
+  return (
+    <aside className="evidence-inspector" aria-label="Evidence inspector">
+      <div className="inspector-header">
+        <span className="inspector-kicker">Evidence inspector</span>
+        <h2>What supports the diagnosis</h2>
+        <p>Bounded facts attached to the most recent diagnosis.</p>
+      </div>
+
+      {evidence.length > 0 ? (
+        <EvidenceGrid evidence={evidence} className="inspector-evidence" />
+      ) : (
+        <div className="inspector-empty">
+          <span className="inspector-rule" aria-hidden="true" />
+          <strong>
+            {hasConversation ? "No evidence attached" : "Ready for evidence"}
+          </strong>
+          <p>
+            {hasConversation
+              ? "The latest response did not include structured evidence."
+              : "Supporting facts will appear here after an investigation."}
+          </p>
         </div>
-      ))}
-    </div>
+      )}
+
+      <div className="inspector-footer">
+        <Icon name="shield" size={14} />
+        Read-only, bounded collection
+      </div>
+    </aside>
   );
 }
 
@@ -401,14 +424,13 @@ function ToolSteps({ steps }: { steps: InvestigationStep[] }) {
   const [expanded, setExpanded] = useState(false);
   if (steps.length === 0) return null;
   return (
-    <div className="tool-steps">
+    <section className="tool-steps" aria-label="Investigation trace">
       <button
         aria-expanded={expanded}
         onClick={() => setExpanded((value) => !value)}
       >
         <span>
-          <Icon name="tool" size={15} /> Investigated with {steps.length}{" "}
-          read-only {steps.length === 1 ? "tool" : "tools"}
+          Investigation trace <b>{steps.length}</b>
         </span>
         <span className={`disclosure ${expanded ? "expanded" : ""}`}>
           <Icon name="chevron" size={14} />
@@ -418,9 +440,7 @@ function ToolSteps({ steps }: { steps: InvestigationStep[] }) {
         <ol>
           {steps.map((step, index) => (
             <li key={`${step.tool}-${index}`}>
-              <span className="step-check">
-                <Icon name="check" size={12} />
-              </span>
+              <span className="step-index">{index + 1}</span>
               <div>
                 <code>{step.tool}</code>
                 <p>{step.summary}</p>
@@ -429,7 +449,7 @@ function ToolSteps({ steps }: { steps: InvestigationStep[] }) {
           ))}
         </ol>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -453,16 +473,16 @@ function AssistantMessage({
   return (
     <article className="message assistant-message">
       <div className="assistant-avatar">
-        <Icon name="logo" size={19} />
+        <img src="/brand/dopsy-mark.svg" alt="" />
       </div>
       <div className="message-content">
         <div className="message-meta">
           <strong>Dopsy</strong>
-          <span>Diagnostic assistant</span>
+          <span>Diagnosis</span>
         </div>
-        <ToolSteps steps={message.steps} />
         <p className="answer-text">{message.content}</p>
-        <EvidenceGrid evidence={message.evidence} />
+        <EvidenceGrid evidence={message.evidence} className="inline-evidence" />
+        <ToolSteps steps={message.steps} />
         <button className="copy-button" onClick={copyAnswer}>
           <Icon name={copied ? "check" : "copy"} size={14} />{" "}
           {copied ? "Copied" : "Copy answer"}
@@ -486,7 +506,7 @@ function InvestigationLoader({
       aria-label="Dopsy is preparing a diagnosis"
     >
       <div className="assistant-avatar active">
-        <Icon name="logo" size={19} />
+        <img src="/brand/dopsy-mark.svg" alt="" />
       </div>
       <div className="message-content loading-message">
         <div className="message-meta">
@@ -522,29 +542,22 @@ type EmptyStateProps = {
 function EmptyState({ selected, disabled, onPrompt }: EmptyStateProps) {
   return (
     <section className="empty-state" aria-labelledby="welcome-title">
-      <div className="hero-mark">
-        <span>
-          <Icon name="sparkles" size={28} />
-        </span>
+      <div className="empty-heading">
+        <img src="/brand/dopsy-mark.svg" alt="" />
+        <span>New investigation</span>
       </div>
-      <div className="eyebrow">
-        <Icon name="shield" size={13} /> Read-only diagnostic workspace
-      </div>
-      <h1 id="welcome-title">
-        Ask your stack
-        <br />
-        what happened.
-      </h1>
+      <h1 id="welcome-title">What should we inspect?</h1>
       <p>
-        Dopsy investigates the right logs, state, and metadata for your
-        question—then explains the evidence in plain language.
+        Ask about a failure, slowdown, or unusual container state. Dopsy reads
+        only the bounded evidence needed to answer.
       </p>
       {selected && (
         <div className="selected-context">
           <span className={`state-dot ${stateTone(selected)}`} />
-          Questions will focus on <strong>{selected.name}</strong>
+          Scope: <strong>{selected.name}</strong>
         </div>
       )}
+      <h2>Common investigations</h2>
       <div className="prompt-grid">
         {sampleQuestions.map((item) => (
           <button
@@ -584,6 +597,15 @@ export default function App() {
   const scopeVersionRef = useRef(0);
 
   const selected = containers.find((container) => container.id === selectedId);
+  const latestEvidence = useMemo(() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (message.role === "assistant") {
+        return message.evidence;
+      }
+    }
+    return [];
+  }, [messages]);
 
   const loadData = async () => {
     setLoading(true);
@@ -788,196 +810,212 @@ export default function App() {
           </div>
           <div className="topbar-actions">
             {health?.docker.mode === "demo" && (
-              <span className="demo-badge">Demo data</span>
+              <span className="mode-label">Demo data</span>
             )}
-            <span className="safety-badge">
-              <Icon name="shield" size={14} /> Read only
+            <span className="access-label">
+              <span className="status-dot online" /> Read-only
             </span>
             <a
               className="docs-link"
-              href="https://github.com/smn-pascal/dopsy"
+              href="https://smn-pascal.github.io/dopsy/"
               target="_blank"
               rel="noreferrer"
             >
-              Docs <Icon name="external" size={13} />
+              Documentation <Icon name="external" size={13} />
             </a>
           </div>
         </header>
 
-        {loadError && (
-          <div className="global-alert" role="alert">
-            <Icon name="alert" size={17} />
-            <span>
-              <strong>Connection issue</strong>
-              {loadError}
-            </span>
-            <button onClick={() => void loadData()}>Try again</button>
-          </div>
-        )}
-
-        {aiUnavailable && (
-          <div className="global-alert warning" role="alert">
-            <Icon name="alert" size={17} />
-            <span>
-              <strong>AI provider not configured</strong>Add a supported
-              provider in your Dopsy environment to start a diagnosis.
-            </span>
-          </div>
-        )}
-
-        {demoProvider && (
-          <div className="global-alert info" role="status">
-            <Icon name="sparkles" size={17} />
-            <span>
-              <strong>Local demo diagnostics</strong>Questions use built-in
-              sample evidence, so no AI key is needed.
-            </span>
-          </div>
-        )}
-
-        {dockerUnavailable && (
-          <div className="global-alert warning" role="alert">
-            <Icon name="alert" size={17} />
-            <span>
-              <strong>Docker is unavailable</strong>
-              {health?.docker.message ??
-                "Check the Docker socket connection and refresh."}
-            </span>
-          </div>
-        )}
-
-        <div
-          className={`conversation ${messages.length === 0 ? "is-empty" : ""}`}
-        >
-          {messages.length === 0 ? (
-            <EmptyState
-              disabled={inputDisabled}
-              onPrompt={(prompt) => void submitMessage(prompt)}
-              selected={selected}
-            />
-          ) : (
-            <div className="message-list" aria-live="polite">
-              {messages.map((message) => {
-                if (message.role === "user") {
-                  return (
-                    <article className="message user-message" key={message.id}>
-                      <div className="message-content">
-                        {message.containerName && (
-                          <span className="message-context">
-                            {message.containerName}
-                          </span>
-                        )}
-                        <p>{message.content}</p>
-                      </div>
-                      <div className="user-avatar">You</div>
-                    </article>
-                  );
-                }
-                if (message.role === "error") {
-                  return (
-                    <article
-                      className="message assistant-message error-message"
-                      key={message.id}
-                      role="alert"
-                    >
-                      <div className="assistant-avatar error">
-                        <Icon name="alert" size={18} />
-                      </div>
-                      <div className="message-content">
-                        <div className="message-meta">
-                          <strong>Investigation stopped</strong>
-                        </div>
-                        <p>{message.content}</p>
-                        <button
-                          onClick={() =>
-                            void submitMessage(
-                              message.originalMessage,
-                              message.containerId,
-                              message.containerId === selectedId
-                                ? conversationId
-                                : undefined,
-                            )
-                          }
-                          disabled={sending}
-                        >
-                          <Icon name="refresh" size={14} /> Try again
-                        </button>
-                      </div>
-                    </article>
-                  );
-                }
-                return <AssistantMessage key={message.id} message={message} />;
-              })}
-              {sending && (
-                <InvestigationLoader
-                  selectedName={selected?.name}
-                  step={loaderStep}
-                />
-              )}
-              <div ref={endRef} />
-            </div>
-          )}
-        </div>
-
-        <div className="composer-wrap">
-          <form className="composer" onSubmit={onSubmit}>
-            {selected && (
-              <div className="composer-context">
-                <span className={`state-dot ${stateTone(selected)}`} />
-                <span>{selected.name}</span>
-                <button
-                  type="button"
-                  aria-label="Clear selected container"
-                  onClick={() => selectScope(undefined)}
-                >
-                  <Icon name="close" size={12} />
-                </button>
+        <div className="workspace-body">
+          <section className="primary-pane" aria-label="Diagnostic workspace">
+            {loadError && (
+              <div className="global-alert" role="alert">
+                <Icon name="alert" size={17} />
+                <span>
+                  <strong>Connection issue</strong>
+                  {loadError}
+                </span>
+                <button onClick={() => void loadData()}>Try again</button>
               </div>
             )}
-            <div className="composer-row">
-              <textarea
-                aria-label="Ask Dopsy"
-                disabled={inputDisabled}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={onTextareaKeyDown}
-                placeholder={
-                  aiUnavailable
-                    ? "Configure an AI provider to begin…"
-                    : dockerUnavailable
-                      ? "Connect Docker to begin…"
-                      : "Ask what happened in your containers…"
-                }
-                ref={textareaRef}
-                rows={1}
-                value={input}
-              />
-              <button
-                className="send-button"
-                type="submit"
-                disabled={inputDisabled || !input.trim()}
-                aria-label="Send question"
-              >
-                {sending ? (
-                  <span className="button-spinner" />
-                ) : (
-                  <Icon name="send" size={18} />
+
+            {aiUnavailable && (
+              <div className="global-alert warning" role="alert">
+                <Icon name="alert" size={17} />
+                <span>
+                  <strong>AI provider not configured</strong>Add a supported
+                  provider in your Dopsy environment to start a diagnosis.
+                </span>
+              </div>
+            )}
+
+            {demoProvider && (
+              <div className="global-alert info" role="status">
+                <Icon name="shield" size={17} />
+                <span>
+                  <strong>Local demo diagnostics</strong>Built-in sample
+                  evidence is used. No provider is contacted.
+                </span>
+              </div>
+            )}
+
+            {dockerUnavailable && (
+              <div className="global-alert warning" role="alert">
+                <Icon name="alert" size={17} />
+                <span>
+                  <strong>Docker is unavailable</strong>
+                  {health?.docker.message ??
+                    "Check the Docker socket connection and refresh."}
+                </span>
+              </div>
+            )}
+
+            <div
+              className={`conversation ${messages.length === 0 ? "is-empty" : ""}`}
+            >
+              {messages.length === 0 ? (
+                <EmptyState
+                  disabled={inputDisabled}
+                  onPrompt={(prompt) => void submitMessage(prompt)}
+                  selected={selected}
+                />
+              ) : (
+                <div className="message-list" aria-live="polite">
+                  {messages.map((message) => {
+                    if (message.role === "user") {
+                      return (
+                        <article
+                          className="message user-message"
+                          key={message.id}
+                        >
+                          <div className="message-content">
+                            <div className="message-meta">
+                              <strong>You</strong>
+                              <span>Question</span>
+                            </div>
+                            {message.containerName && (
+                              <span className="message-context">
+                                Scope: {message.containerName}
+                              </span>
+                            )}
+                            <p>{message.content}</p>
+                          </div>
+                        </article>
+                      );
+                    }
+                    if (message.role === "error") {
+                      return (
+                        <article
+                          className="message assistant-message error-message"
+                          key={message.id}
+                          role="alert"
+                        >
+                          <div className="assistant-avatar error">
+                            <Icon name="alert" size={18} />
+                          </div>
+                          <div className="message-content">
+                            <div className="message-meta">
+                              <strong>Investigation stopped</strong>
+                            </div>
+                            <p>{message.content}</p>
+                            <button
+                              onClick={() =>
+                                void submitMessage(
+                                  message.originalMessage,
+                                  message.containerId,
+                                  message.containerId === selectedId
+                                    ? conversationId
+                                    : undefined,
+                                )
+                              }
+                              disabled={sending}
+                            >
+                              <Icon name="refresh" size={14} /> Try again
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    }
+                    return (
+                      <AssistantMessage key={message.id} message={message} />
+                    );
+                  })}
+                  {sending && (
+                    <InvestigationLoader
+                      selectedName={selected?.name}
+                      step={loaderStep}
+                    />
+                  )}
+                  <div ref={endRef} />
+                </div>
+              )}
+            </div>
+
+            <div className="composer-wrap">
+              <form className="composer" onSubmit={onSubmit}>
+                {selected && (
+                  <div className="composer-context">
+                    <span className={`state-dot ${stateTone(selected)}`} />
+                    <span>{selected.name}</span>
+                    <button
+                      type="button"
+                      aria-label="Clear selected container"
+                      onClick={() => selectScope(undefined)}
+                    >
+                      <Icon name="close" size={12} />
+                    </button>
+                  </div>
                 )}
-              </button>
+                <div className="composer-row">
+                  <textarea
+                    aria-label="Ask Dopsy"
+                    disabled={inputDisabled}
+                    onChange={(event) => setInput(event.target.value)}
+                    onKeyDown={onTextareaKeyDown}
+                    placeholder={
+                      aiUnavailable
+                        ? "Configure an AI provider to begin…"
+                        : dockerUnavailable
+                          ? "Connect Docker to begin…"
+                          : "Ask what happened in your containers…"
+                    }
+                    ref={textareaRef}
+                    rows={1}
+                    value={input}
+                  />
+                  <button
+                    className="send-button"
+                    type="submit"
+                    disabled={inputDisabled || !input.trim()}
+                    aria-label="Send question"
+                  >
+                    {sending ? (
+                      <span className="button-spinner" />
+                    ) : (
+                      <Icon name="send" size={18} />
+                    )}
+                  </button>
+                </div>
+                <div className="composer-footer">
+                  <span>Enter to send · Shift + Enter for a new line</span>
+                  <span>
+                    <Icon name="shield" size={12} /> Read-only by design
+                  </span>
+                </div>
+              </form>
+              <p className="disclaimer privacy-disclaimer">
+                <Icon name="shield" size={12} />
+                {demoProvider
+                  ? "Local demo: no AI provider is contacted."
+                  : "Privacy: bounded log excerpts can contain sensitive data and are sent to your configured AI provider."}
+              </p>
             </div>
-            <div className="composer-footer">
-              <span>Enter to send · Shift + Enter for a new line</span>
-              <span>
-                <Icon name="shield" size={12} /> Dopsy cannot modify your
-                containers
-              </span>
-            </div>
-          </form>
-          <p className="disclaimer privacy-disclaimer">
-            <Icon name="shield" size={12} />
-            {demoProvider
-              ? "Local demo: no AI provider is contacted."
-              : "Privacy: bounded log excerpts can contain sensitive data and are sent to your configured AI provider."}
-          </p>
+          </section>
+
+          <EvidenceInspector
+            evidence={latestEvidence}
+            hasConversation={messages.length > 0}
+          />
         </div>
       </main>
     </div>
