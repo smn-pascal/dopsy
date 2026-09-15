@@ -19,6 +19,14 @@ exit code, CPU use, and memory use. These values are point-in-time facts. Dopsy
 does not present them as trends and does not infer a root cause from the
 dashboard alone.
 
+The snapshot is manual by default. The optional **Live** switch requests a
+fresh snapshot at most once per minute while the overview tab is active and
+visible. It stops scheduling reads when the browser tab is hidden or the user
+opens the diagnostic workspace, and never overlaps an in-progress refresh.
+This is repeated point-in-time collection, not stored history; switching Live
+on does not turn the charts into trends. The setting resets when the page is
+reloaded.
+
 The web dashboard uses a four-number status band, two snapshot charts, and
 individual container cards. The CPU columns show up to five observed containers
 with current statistics, ranked by current CPU use. Their labelled scale adapts

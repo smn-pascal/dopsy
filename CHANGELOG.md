@@ -5,6 +5,11 @@ All notable changes to Dopsy are documented in this file. The project follows
 
 ## [Unreleased]
 
+### Added
+
+- An opt-in, visible-tab-only dashboard refresh that reads at most once per
+  minute and does not overlap an existing snapshot request.
+
 ## [0.1.3] - 2026-09-15
 
 ### Added

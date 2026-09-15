@@ -600,63 +600,81 @@ export default function App() {
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [overviewError, setOverviewError] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(false);
   const [loaderStep, setLoaderStep] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scopeVersionRef = useRef(0);
+  const loadInFlightRef = useRef(false);
 
   const selected = containers.find((container) => container.id === selectedId);
   const loadData = async () => {
+    if (loadInFlightRef.current) return;
+    loadInFlightRef.current = true;
     setLoading(true);
     setLoadError(null);
     setOverviewError(null);
-    const [healthResult, containersResult, overviewResult] =
-      await Promise.allSettled([
-        api.health(),
-        api.containers(),
-        api.overview(),
-      ]);
+    try {
+      const [healthResult, containersResult, overviewResult] =
+        await Promise.allSettled([
+          api.health(),
+          api.containers(),
+          api.overview(),
+        ]);
 
-    if (healthResult.status === "fulfilled") setHealth(healthResult.value);
-    if (containersResult.status === "fulfilled") {
-      setContainers(containersResult.value);
-      if (
-        selectedId &&
-        !containersResult.value.some((container) => container.id === selectedId)
-      ) {
-        scopeVersionRef.current += 1;
-        setConversationId(undefined);
-        setSelectedId(undefined);
+      if (healthResult.status === "fulfilled") setHealth(healthResult.value);
+      if (containersResult.status === "fulfilled") {
+        setContainers(containersResult.value);
+        if (
+          selectedId &&
+          !containersResult.value.some(
+            (container) => container.id === selectedId,
+          )
+        ) {
+          scopeVersionRef.current += 1;
+          setConversationId(undefined);
+          setSelectedId(undefined);
+        }
       }
-    }
-    if (overviewResult.status === "fulfilled") {
-      setOverview(overviewResult.value);
-    } else {
-      setOverviewError(
-        overviewResult.reason instanceof Error
-          ? overviewResult.reason.message
-          : "Dopsy konnte die Übersicht nicht laden.",
-      );
-    }
+      if (overviewResult.status === "fulfilled") {
+        setOverview(overviewResult.value);
+      } else {
+        setOverviewError(
+          overviewResult.reason instanceof Error
+            ? overviewResult.reason.message
+            : "Dopsy konnte die Übersicht nicht laden.",
+        );
+      }
 
-    const failures = [healthResult, containersResult].filter(
-      (result) => result.status === "rejected",
-    );
-    if (failures.length) {
-      const first = failures[0] as PromiseRejectedResult;
-      setLoadError(
-        first.reason instanceof Error
-          ? first.reason.message
-          : "Dopsy konnte die Systemdaten nicht laden.",
+      const failures = [healthResult, containersResult].filter(
+        (result) => result.status === "rejected",
       );
+      if (failures.length) {
+        const first = failures[0] as PromiseRejectedResult;
+        setLoadError(
+          first.reason instanceof Error
+            ? first.reason.message
+            : "Dopsy konnte die Systemdaten nicht laden.",
+        );
+      }
+    } finally {
+      loadInFlightRef.current = false;
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     void loadData();
   }, []);
+
+  useEffect(() => {
+    if (!autoRefresh || activeView !== "overview") return;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadData();
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, [autoRefresh, activeView, selectedId]);
 
   useEffect(() => {
     if (!sending) {
@@ -851,9 +869,11 @@ export default function App() {
         <div className="workspace-body">
           {activeView === "overview" ? (
             <Dashboard
+              autoRefresh={autoRefresh}
               data={overview}
               error={overviewError}
               loading={loading}
+              onAutoRefreshChange={setAutoRefresh}
               onInvestigate={(containerId) => openInvestigation(containerId)}
               onRefresh={() => void loadData()}
             />

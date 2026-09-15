@@ -1,4 +1,11 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -94,6 +101,8 @@ describe("Dopsy app", () => {
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
+    Reflect.deleteProperty(document, "visibilityState");
     vi.unstubAllGlobals();
   });
 
@@ -504,5 +513,97 @@ describe("Dopsy app", () => {
     expect(overviewCalls()).toBe(1);
     await user.click(screen.getByRole("button", { name: "Aktualisieren" }));
     await waitFor(() => expect(overviewCalls()).toBe(2));
+  });
+
+  it("polls only when Live is enabled on a visible overview", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Übersicht", level: 1 });
+    const overviewCalls = () =>
+      vi
+        .mocked(fetch)
+        .mock.calls.filter(([request]) =>
+          request.toString().endsWith("/api/overview"),
+        ).length;
+
+    vi.useFakeTimers();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Live-Aktualisierung einschalten" }),
+    );
+    expect(
+      screen.getByRole("button", { name: "Live-Aktualisierung ausschalten" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(overviewCalls()).toBe(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(overviewCalls()).toBe(2);
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(overviewCalls()).toBe(2);
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Diagnose" }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(overviewCalls()).toBe(2);
+
+    fireEvent.click(screen.getByRole("button", { name: "Übersicht" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Live-Aktualisierung ausschalten" }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(overviewCalls()).toBe(2);
+  });
+
+  it("does not overlap dashboard refreshes when one Docker read is slow", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Übersicht", level: 1 });
+    let releaseRead: (() => void) | undefined;
+    const slowRead = new Promise<void>((resolve) => {
+      releaseRead = resolve;
+    });
+    let overviewCalls = 0;
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url.endsWith("/api/health")) return jsonResponse(health);
+      if (url.endsWith("/api/containers")) return jsonResponse(containers);
+      if (url.endsWith("/api/overview")) {
+        overviewCalls += 1;
+        return overviewCalls === 1
+          ? slowRead.then(() => jsonResponse(overview))
+          : jsonResponse(overview);
+      }
+      return jsonResponse({});
+    });
+
+    vi.useFakeTimers();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Live-Aktualisierung einschalten" }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(120_000);
+    });
+    expect(overviewCalls).toBe(1);
+    await act(async () => {
+      releaseRead?.();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(overviewCalls).toBe(2);
   });
 });

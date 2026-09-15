@@ -1697,6 +1697,12 @@ input:focus-visible {
   color: var(--muted);
   font-size: 11px;
 }
+.dashboard-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.dashboard-live,
 .dashboard-refresh,
 .dashboard-failure button {
   display: inline-flex;
@@ -1712,6 +1718,22 @@ input:focus-visible {
   font-size: 11px;
   font-weight: 650;
 }
+.dashboard-live.enabled {
+  color: #245b43;
+  background: #e5f2e9;
+  border-color: #a7c9b2;
+}
+.dashboard-live > span {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  background: #a0aaa3;
+  border-radius: 50%;
+}
+.dashboard-live.enabled > span {
+  background: #31a56a;
+}
+.dashboard-live:hover,
 .dashboard-refresh:hover:not(:disabled),
 .dashboard-failure button:hover {
   background: #e9f2eb;
@@ -2223,7 +2245,6 @@ input:focus-visible {
   flex-basis: 49px;
 }
 
-
 .inline-evidence {
   display: block;
 }
@@ -2326,6 +2347,13 @@ input:focus-visible {
   .dashboard-header h1 {
     font-size: 28px;
   }
+  .dashboard-header {
+    flex-wrap: wrap;
+  }
+  .dashboard-controls {
+    margin-left: auto;
+  }
+  .dashboard-live,
   .dashboard-refresh {
     padding: 0 8px;
     font-size: 10px;
