@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
@@ -32,3 +33,18 @@ jobs:
       - run: pnpm docs:build
       - run: docker build --target dopsy --tag dopsy:ci .
       - run: docker build --target dopsy-proxy --tag dopsy-proxy:ci .
+      - name: Smoke test fresh Compose demo on Linux
+        if: github.event_name != 'pull_request'
+        env:
+          DOPSY_DEMO_MODE: "true"
+          DOPSY_PORT: "18080"
+        run: |
+          set -euo pipefail
+          trap 'docker compose down --volumes' EXIT
+          docker compose up --build --detach
+          curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 1 http://127.0.0.1:18080/api/health |
+            node -e 'const value=JSON.parse(require("fs").readFileSync(0,"utf8")); if(value.status!=="ok" || !value.docker.connected || value.docker.mode!=="demo") process.exit(1)'
+          curl --fail --silent --show-error http://127.0.0.1:18080/api/overview |
+            node -e 'const value=JSON.parse(require("fs").readFileSync(0,"utf8")); if(value.summary.total<2 || !value.containers.some(item=>item.id==="demo-api" && item.details?.oomKilled)) process.exit(1)'
+          curl --fail --silent --show-error --header 'Content-Type: application/json' --data '{"message":"Why did demo-api stop?","containerId":"demo-api"}' http://127.0.0.1:18080/api/chat |
+            node -e 'const value=JSON.parse(require("fs").readFileSync(0,"utf8")); if(typeof value.answer!=="string" || !value.answer.trim() || !Array.isArray(value.evidence)) process.exit(1)'

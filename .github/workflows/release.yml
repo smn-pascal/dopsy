@@ -9,11 +9,21 @@ permissions:
   contents: write
 
 jobs:
+  verify:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
   release:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+      - name: Verify tag, version, and release notes
+        run: |
+          grep -Fq "\"version\": \"${GITHUB_REF_NAME#v}\"" apps/web/package.json
+          test -f ".github/release-notes/$GITHUB_REF_NAME.md"
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
