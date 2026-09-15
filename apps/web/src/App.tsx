@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { api } from "./api";
+import { version as dopsyVersion } from "../package.json";
 import Dashboard from "./components/Dashboard";
 import type {
   ChatMessage,
@@ -142,7 +143,7 @@ function Logo() {
   return (
     <div className="brand" aria-label="Dopsy">
       <img className="brand-logo" src="/brand/dopsy-logo.svg" alt="Dopsy" />
-      <span className="version">v0.1.1</span>
+      <span className="version">v{dopsyVersion}</span>
     </div>
   );
 }

@@ -61,7 +61,7 @@ The model never receives Docker credentials and cannot call Docker directly. Dop
 ## Quick start
 
 ```bash
-git clone https://github.com/smn-pascal/dopsy.git
+git clone --depth 1 --branch v0.1.2 https://github.com/smn-pascal/dopsy.git
 cd dopsy
 cp .env.example .env
 docker compose up --build
@@ -70,6 +70,8 @@ docker compose up --build
 Open [http://localhost:8080](http://localhost:8080).
 
 For installation details and configuration, read the [live documentation](https://smn-pascal.github.io/dopsy/).
+Use the versioned tag above for a reproducible install; clone `main` only when
+you deliberately want the current development state.
 
 To try the built-in example without an API key or production containers, set this in `.env`:
 

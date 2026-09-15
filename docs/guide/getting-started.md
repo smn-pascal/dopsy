@@ -17,11 +17,14 @@ The demo diagnosis uses fixed container data and does not inspect your running
 workloads. It needs no AI provider.
 
 ```bash
-git clone https://github.com/smn-pascal/dopsy.git
+git clone --depth 1 --branch v0.1.2 https://github.com/smn-pascal/dopsy.git
 cd dopsy
 cp .env.example .env
 DOPSY_DEMO_MODE=true docker compose up --build -d
 ```
+
+This checks out the published v0.1.2 source rather than the moving `main`
+branch. The Compose setup builds the application and companion proxy locally.
 
 Open `http://localhost:8080`. The overview immediately shows the fixed demo
 containers and their current resource snapshot without contacting an AI

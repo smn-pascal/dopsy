@@ -5,6 +5,8 @@ All notable changes to Dopsy are documented in this file. The project follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-15
+
 ### Added
 
 - A bounded live overview for deterministic container triage before starting
@@ -18,6 +20,8 @@ All notable changes to Dopsy are documented in this file. The project follows
   a separate investigation workspace. Interface copy is shorter and in German.
 - The overview now uses snapshot charts and individual container cards instead
   of a container table, without presenting uncollected historical trends.
+- The release process runs the full test and Linux Compose demo checks before a
+  tagged version can be published.
 
 ## [0.1.1] - 2026-09-10
 
@@ -60,6 +64,7 @@ All notable changes to Dopsy are documented in this file. The project follows
 - Agent rounds, tool calls, log windows, output sizes, request time, and
   concurrent diagnoses are bounded.
 
-[Unreleased]: https://github.com/smn-pascal/dopsy/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/smn-pascal/dopsy/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/smn-pascal/dopsy/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/smn-pascal/dopsy/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/smn-pascal/dopsy/releases/tag/v0.1.0

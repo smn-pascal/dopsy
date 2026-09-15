@@ -117,6 +117,7 @@ describe("Dopsy app", () => {
     ).not.toHaveAttribute("aria-current");
     expect(screen.getByText("Verbunden")).toBeInTheDocument();
     expect(screen.getByText("test-model")).toBeInTheDocument();
+    expect(screen.getByText("v0.1.2")).toBeInTheDocument();
     expect(screen.getByText("Gesamt")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "CPU-Auslastung", level: 2 }),
