@@ -5,6 +5,7 @@ The roadmap protects Dopsy's core identity: lightweight, diagnostic, evidence-ba
 ## v0.1 — First complete diagnosis
 
 - Container list and current status
+- Live overview and deterministic container triage
 - Bounded inspect, logs, and current resource tools
 - OpenAI-compatible tool-calling provider
 - Deterministic no-key demo diagnosis

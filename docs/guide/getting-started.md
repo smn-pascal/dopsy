@@ -23,7 +23,10 @@ cp .env.example .env
 DOPSY_DEMO_MODE=true docker compose up --build -d
 ```
 
-Open `http://localhost:8080`, select `demo-api`, and ask why it stopped.
+Open `http://localhost:8080`. The overview immediately shows the fixed demo
+containers and their current resource snapshot without contacting an AI
+provider. Choose **Untersuchen** on `demo-api` and ask why it stopped to try the
+diagnostic flow.
 
 The standard Compose file still starts Dopsy's companion proxy and mounts the
 Docker socket into that proxy, even in demo mode. Dopsy itself uses its built-in

@@ -12,7 +12,10 @@
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-64e6bd.svg"></a>
 </p>
 
-Dopsy is a self-hosted diagnostic interface for Docker. Ask a question in plain language; Dopsy gathers bounded, read-only evidence from container state, recent logs, and current resource usage, then shows both its diagnosis and the facts behind it.
+Dopsy is a self-hosted diagnostic interface for Docker. Start with a bounded,
+deterministic overview of current container state and resource use, then ask a
+question in plain language. Dopsy gathers only the read-only evidence needed
+for the investigation and shows both its diagnosis and the facts behind it.
 
 > [!WARNING]
 > Dopsy v0.1 is a development preview and does not include authentication. Keep it bound to localhost; do not expose it directly to the internet.
@@ -38,6 +41,7 @@ diagnosis, next checks, and visible evidence
 ```
 
 - **Read-only boundary:** no exec, start, stop, restart, delete, create, or deployment operations.
+- **Facts-first overview:** inspect current container posture without contacting an AI provider.
 - **Bounded investigations:** rounds, tool calls, log windows, lines, bytes, and request time are capped.
 - **Provider choice:** connect an OpenAI-compatible cloud, company, or local endpoint.
 - **Evidence stays visible:** deterministic Docker facts are shown alongside the model-generated explanation.
@@ -114,7 +118,11 @@ pnpm docs:build
 
 ## Project status
 
-Dopsy is pre-1.0 software. The current preview covers one diagnostic path end to end: container discovery, bounded inspection, recent logs, current resource statistics, model-guided tool calls, and visible supporting evidence. Historical metrics, authentication, multi-host operation, alerting, and automated remediation are not implemented.
+Dopsy is pre-1.0 software. The current preview covers a bounded live overview
+and one diagnostic path end to end: container discovery, sanitized inspection,
+recent logs, current resource statistics, model-guided tool calls, and visible
+supporting evidence. Historical metrics, authentication, multi-host operation,
+alerting, and automated remediation are not implemented.
 
 See the [roadmap](ROADMAP.md), [changelog](CHANGELOG.md), [live documentation](https://smn-pascal.github.io/dopsy/), and [contribution guide](CONTRIBUTING.md).
 

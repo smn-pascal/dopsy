@@ -5,6 +5,18 @@ All notable changes to Dopsy are documented in this file. The project follows
 
 ## [Unreleased]
 
+### Added
+
+- A bounded live overview for deterministic container triage before starting
+  an AI-assisted investigation.
+- Current CPU and memory snapshots for running containers, with explicit
+  partial and truncated collection states.
+
+### Changed
+
+- The web interface now opens on the overview and keeps the diagnostic chat as
+  a separate investigation workspace. Interface copy is shorter and in German.
+
 ## [0.1.1] - 2026-09-10
 
 ### Changed

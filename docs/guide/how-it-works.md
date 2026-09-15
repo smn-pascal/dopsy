@@ -1,15 +1,21 @@
 # How it works
 
-Dopsy performs two small reads when the interface opens: it checks service and
-Docker connectivity, then loads the current container list. It does not inspect
-a container, read logs or statistics, or contact the configured model until you
-submit a diagnostic question.
+Dopsy opens with a bounded overview snapshot. It checks service and Docker
+connectivity, loads the current container list, and collects sanitized details
+plus current statistics for a limited number of containers. Statistics are
+requested only for running containers. The overview does not read logs or
+contact the configured model.
 
 ```text
 page load
   -> health and Docker connectivity check
   -> bounded container list
+  -> bounded details and current statistics
+  -> deterministic dashboard assessment
 ```
+
+The [dashboard guide](/guide/dashboard) describes the snapshot semantics,
+partial results, and collection limits.
 
 For a diagnosis, the investigation continues through the constrained tool path:
 
@@ -33,5 +39,6 @@ server issues an opaque conversation identifier; the browser returns it only for
 the same container scope. Raw tool output is not retained as chat history, and
 all in-memory sessions disappear when Dopsy restarts.
 
-The first release does not store historical metrics. A diagnosis must state when
-the requested evidence is unavailable.
+The current release does not store historical metrics. Dashboard values are a
+point-in-time snapshot, and a diagnosis must state when requested evidence is
+unavailable.
