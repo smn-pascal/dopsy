@@ -97,6 +97,7 @@ func New(docker dockergateway.Gateway, diagnoser Diagnoser, options Options) htt
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/health", api.health)
 	mux.HandleFunc("/api/containers", api.containers)
+	mux.HandleFunc("/api/overview", api.overview)
 	mux.HandleFunc("/api/chat", api.chat)
 	mux.HandleFunc("/api/", api.notFound)
 	mux.HandleFunc("/", api.static)

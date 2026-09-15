@@ -18,6 +18,128 @@ paths:
       responses:
         "200":
           description: Container summaries
+  /api/overview:
+    get:
+      summary: Collect a bounded, deterministic, read-only container snapshot
+      description: >-
+        At most 50 valid container IDs are observed, prioritising current warning
+        signals. No more than four container reads run concurrently. Each container
+        has a two-second deadline, and the entire collection has a twelve-second
+        deadline. Inspection is requested for observed containers; one non-streaming
+        statistics read is requested only when inspection reports a running
+        container. Logs and model providers are never contacted. List failure is
+        fatal; individual read failures return partial facts with missing fields
+        omitted. The JSON response is capped at 128 KiB.
+      responses:
+        "200":
+          description: Current snapshot; may be partial or truncated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [generatedAt, summary, collection, containers]
+                properties:
+                  generatedAt:
+                    type: integer
+                    format: int64
+                    description: Unix seconds when the container list was collected.
+                  summary:
+                    type: object
+                    additionalProperties: false
+                    required: [total, running, healthy, needsReview]
+                    properties:
+                      total:
+                        type: integer
+                        minimum: 0
+                        description: Count across the full Docker container list.
+                      running:
+                        type: integer
+                        minimum: 0
+                        description: Count across the full Docker container list.
+                      healthy:
+                        type: integer
+                        minimum: 0
+                        description: Count across the full Docker container list.
+                      needsReview:
+                        type: integer
+                        minimum: 0
+                        description: Warning or critical assessments in the observed subset only.
+                  collection:
+                    type: object
+                    additionalProperties: false
+                    required: [observed, total, partial, truncated]
+                    properties:
+                      observed:
+                        type: integer
+                        minimum: 0
+                        maximum: 50
+                        description: Number of containers represented in the observed subset.
+                      total:
+                        type: integer
+                        minimum: 0
+                        description: Number of containers returned by Docker.
+                      partial:
+                        type: boolean
+                        description: A malformed ID, detail/statistics failure, or collection deadline caused missing values.
+                      truncated:
+                        type: boolean
+                        description: More than 50 valid containers were returned.
+                  containers:
+                    type: array
+                    maxItems: 50
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [id, name, image, state, status, created, assessment]
+                      properties:
+                        id:
+                          type: string
+                          pattern: "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+                        name: { type: string, maxLength: 128 }
+                        image: { type: string, maxLength: 256 }
+                        state: { type: string, maxLength: 32 }
+                        status: { type: string, maxLength: 128 }
+                        health:
+                          type: string
+                          enum: [healthy, unhealthy, starting]
+                        created: { type: integer, format: int64 }
+                        details:
+                          type: object
+                          additionalProperties: false
+                          required: [running, oomKilled, exitCode, restartCount]
+                          properties:
+                            running: { type: boolean }
+                            oomKilled: { type: boolean }
+                            exitCode: { type: integer }
+                            restartCount: { type: integer }
+                            startedAt: { type: string, format: date-time }
+                            finishedAt: { type: string, format: date-time }
+                        metrics:
+                          type: object
+                          additionalProperties: false
+                          required: [cpuPercent, memoryUsageBytes, memoryLimitBytes, memoryPercent, readAt]
+                          properties:
+                            cpuPercent: { type: number, minimum: 0 }
+                            memoryUsageBytes: { type: integer, minimum: 0 }
+                            memoryLimitBytes: { type: integer, minimum: 0 }
+                            memoryPercent: { type: number, minimum: 0, maximum: 100 }
+                            readAt: { type: integer, format: int64 }
+                        assessment:
+                          type: object
+                          additionalProperties: false
+                          required: [level, summary]
+                          properties:
+                            level:
+                              type: string
+                              enum: [ok, warning, critical, unknown]
+                            summary: { type: string }
+        "405":
+          description: Only GET is allowed
+        "500":
+          description: Snapshot could not be safely encoded within the response limit
+        "502":
+          description: Initial Docker container list could not be read
   /api/chat:
     post:
       summary: Run a bounded, read-only diagnosis
