@@ -118,9 +118,14 @@ describe("Dopsy app", () => {
     expect(screen.getByText("Verbunden")).toBeInTheDocument();
     expect(screen.getByText("test-model")).toBeInTheDocument();
     expect(screen.getByText("Gesamt")).toBeInTheDocument();
-    expect(screen.getByRole("table")).toHaveTextContent("api");
     expect(
-      screen.getByRole("columnheader", { name: "CPU" }),
+      screen.getByRole("heading", { name: "CPU-Auslastung", level: 2 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "1 von 1 Containern laufen" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "api", level: 3 }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("progressbar", { name: /api: RAM/i }),
@@ -351,9 +356,15 @@ describe("Dopsy app", () => {
     expect(screen.getByRole("button", { name: "Aktualisieren" })).toBeEnabled();
     expect(screen.queryByText("KI nicht eingerichtet")).not.toBeInTheDocument();
 
-    await userEvent.setup().click(screen.getByRole("button", { name: "Diagnose" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("KI nicht eingerichtet");
-    expect(screen.getByRole("textbox", { name: "Dopsy fragen" })).toBeDisabled();
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Diagnose" }));
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "KI nicht eingerichtet",
+    );
+    expect(
+      screen.getByRole("textbox", { name: "Dopsy fragen" }),
+    ).toBeDisabled();
   });
 
   it("shows partial collection coverage without inventing missing metrics", async () => {
@@ -390,9 +401,16 @@ describe("Dopsy app", () => {
     expect(await screen.findByText(/Daten teilweise/i)).toHaveTextContent(
       "1/3",
     );
-    const row = screen.getByRole("row", { name: /api/i });
-    expect(row).toHaveTextContent("–");
-    expect(row).not.toHaveTextContent("0,0 %");
+    const card = screen
+      .getByRole("heading", { name: "api", level: 3 })
+      .closest(".container-card");
+    expect(card).toHaveTextContent("–");
+    expect(card).not.toHaveTextContent("0,0 %");
+    expect(
+      screen.getByRole("img", {
+        name: /Beobachtet: 0 kritisch, 0 prüfen, 1 unklar, 0 ohne Warnsignal/i,
+      }),
+    ).toBeInTheDocument();
   });
 
   it("puts critical containers before healthy containers", async () => {
@@ -434,12 +452,40 @@ describe("Dopsy app", () => {
 
     render(<App />);
 
-    const rows = await screen.findAllByRole("row");
-    expect(rows[1]).toHaveTextContent("worker");
-    expect(rows[1]).toHaveTextContent("Beendet");
-    expect(rows[1]).not.toHaveTextContent("Gesund");
-    expect(rows[1]).toHaveTextContent("Speichermangel");
-    expect(rows[2]).toHaveTextContent("api");
+    await screen.findByRole("heading", { name: "worker", level: 3 });
+    const cards = screen.getAllByRole("article");
+    expect(cards[0]).toHaveTextContent("worker");
+    expect(cards[0]).toHaveTextContent("Beendet");
+    expect(cards[0]).not.toHaveTextContent("Gesund");
+    expect(cards[0]).toHaveTextContent("Speichermangel");
+    expect(cards[1]).toHaveTextContent("api");
+  });
+
+  it("uses a labelled CPU scale above 100 percent without inventing history", async () => {
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url.endsWith("/api/health")) return jsonResponse(health);
+      if (url.endsWith("/api/containers")) return jsonResponse(containers);
+      if (url.endsWith("/api/overview")) {
+        return jsonResponse({
+          ...overview,
+          containers: [
+            {
+              ...overview.containers[0],
+              metrics: { ...overview.containers[0].metrics, cpuPercent: 240 },
+            },
+          ],
+        });
+      }
+      return jsonResponse({});
+    });
+
+    render(<App />);
+    expect(await screen.findByText("Skala 0–500,0 %")).toBeInTheDocument();
+    expect(screen.getAllByText("240,0 %").length).toBeGreaterThan(0);
+    expect(
+      screen.getByText("Nur aktuelle Messwerte · kein Verlauf"),
+    ).toBeInTheDocument();
   });
 
   it("refreshes the snapshot only when requested", async () => {
