@@ -8,37 +8,35 @@ import {
   useState,
 } from "react";
 import { api } from "./api";
+import Dashboard from "./components/Dashboard";
 import type {
   ChatMessage,
   Container,
   Evidence,
   HealthResponse,
   InvestigationStep,
+  OverviewResponse,
 } from "./types";
 
 const sampleQuestions = [
   {
     icon: "pulse",
-    title: "Resource pressure",
-    prompt: "Which container is using the most resources, and why?",
+    title: "Hohe Last",
+    prompt: "Welcher Container verbraucht die meisten Ressourcen – und warum?",
   },
   {
     icon: "history",
-    title: "Unexpected restart",
-    prompt: "Why did this container restart, and what should I check next?",
+    title: "Neustart",
+    prompt: "Warum wurde dieser Container neu gestartet?",
   },
   {
     icon: "logs",
-    title: "Recent errors",
-    prompt: "Are there any important errors in the recent logs?",
+    title: "Logfehler",
+    prompt: "Gibt es wichtige Fehler in den letzten Logs?",
   },
 ] as const;
 
-const loadingSteps = [
-  "Reading container state",
-  "Checking bounded evidence",
-  "Preparing the diagnosis",
-];
+const loadingSteps = ["Status lesen", "Hinweise prüfen", "Diagnose erstellen"];
 
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
@@ -51,6 +49,20 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
       <>
         <path d="m12 3 7 4-7 4-7-4 7-4Z" />
         <path d="m5 12 7 4 7-4M5 17l7 4 7-4" />
+      </>
+    ),
+    dashboard: (
+      <>
+        <rect x="4" y="4" width="6" height="6" rx="1" />
+        <rect x="14" y="4" width="6" height="6" rx="1" />
+        <rect x="4" y="14" width="6" height="6" rx="1" />
+        <rect x="14" y="14" width="6" height="6" rx="1" />
+      </>
+    ),
+    chat: (
+      <>
+        <path d="M5 5h14v11H9l-4 4V5Z" />
+        <path d="M9 9h6M9 12h4" />
       </>
     ),
     chevron: <path d="m9 18 6-6-6-6" />,
@@ -124,6 +136,8 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
   );
 }
 
+type WorkspaceView = "overview" | "investigate";
+
 function Logo() {
   return (
     <div className="brand" aria-label="Dopsy">
@@ -152,11 +166,23 @@ function stateTone(container: Container) {
 }
 
 function statusLabel(container: Container) {
-  if (container.health) return container.health;
-  return container.state;
+  const status = container.health || container.state;
+  const labels: Record<string, string> = {
+    healthy: "Gesund",
+    unhealthy: "Ungesund",
+    starting: "Startet",
+    running: "Läuft",
+    exited: "Beendet",
+    created: "Erstellt",
+    paused: "Pausiert",
+    restarting: "Neustart",
+    dead: "Inaktiv",
+  };
+  return labels[status.toLowerCase()] ?? status;
 }
 
 type SidebarProps = {
+  activeView: WorkspaceView;
   containers: Container[];
   health: HealthResponse | null;
   error: string | null;
@@ -166,9 +192,11 @@ type SidebarProps = {
   onClose: () => void;
   onRefresh: () => void;
   onSelect: (id?: string) => void;
+  onViewChange: (view: WorkspaceView) => void;
 };
 
 function Sidebar({
+  activeView,
   containers,
   health,
   error,
@@ -178,6 +206,7 @@ function Sidebar({
   onClose,
   onRefresh,
   onSelect,
+  onViewChange,
 }: SidebarProps) {
   const [query, setQuery] = useState("");
   const demoProvider = health?.docker.mode === "demo" && !health.ai.configured;
@@ -194,47 +223,77 @@ function Sidebar({
     onClose();
   };
 
+  const selectView = (view: WorkspaceView) => {
+    onViewChange(view);
+    onClose();
+  };
+
   return (
     <>
       <button
-        aria-label="Close navigation"
+        aria-label="Navigation schließen"
         className={`sidebar-backdrop ${open ? "visible" : ""}`}
         onClick={onClose}
         tabIndex={open ? 0 : -1}
       />
       <aside
         className={`sidebar ${open ? "open" : ""}`}
-        aria-label="Container navigation"
+        aria-label="Container-Navigation"
       >
         <div className="sidebar-top">
           <Logo />
           <button
             className="icon-button sidebar-close"
-            aria-label="Close sidebar"
+            aria-label="Seitenleiste schließen"
             onClick={onClose}
           >
             <Icon name="close" />
           </button>
         </div>
 
+        <nav className="workspace-nav" aria-label="Bereiche">
+          <button
+            aria-label="Übersicht"
+            aria-current={activeView === "overview" ? "page" : undefined}
+            className={activeView === "overview" ? "selected" : ""}
+            onClick={() => selectView("overview")}
+          >
+            <Icon name="dashboard" size={17} />
+            <span>
+              <strong>Übersicht</strong>
+            </span>
+          </button>
+          <button
+            aria-label="Diagnose"
+            aria-current={activeView === "investigate" ? "page" : undefined}
+            className={activeView === "investigate" ? "selected" : ""}
+            onClick={() => selectView("investigate")}
+          >
+            <Icon name="chat" size={17} />
+            <span>
+              <strong>Diagnose</strong>
+            </span>
+          </button>
+        </nav>
+
         <div className="sidebar-section-heading">
-          <span>Containers</span>
+          <span>Container</span>
           <span className="count">{containers.length}</span>
         </div>
 
         <label className="search-field">
-          <span className="sr-only">Search containers</span>
+          <span className="sr-only">Container suchen</span>
           <Icon name="search" size={16} />
           <input
             type="search"
-            placeholder="Search containers"
+            placeholder="Container suchen"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
           <kbd>/</kbd>
         </label>
 
-        <nav className="container-nav" aria-label="Available containers">
+        <nav className="container-nav" aria-label="Verfügbare Container">
           <button
             className={`container-row all-containers ${selectedId === undefined ? "selected" : ""}`}
             onClick={() => selectContainer(undefined)}
@@ -243,17 +302,13 @@ function Sidebar({
               <Icon name="boxes" size={17} />
             </span>
             <span className="container-details">
-              <strong>All containers</strong>
-              <small>Stack-wide diagnosis</small>
+              <strong>Alle Container</strong>
             </span>
             <Icon name="chevron" size={15} />
           </button>
 
           {loading && containers.length === 0 && (
-            <div
-              className="container-skeletons"
-              aria-label="Loading containers"
-            >
+            <div className="container-skeletons" aria-label="Container laden">
               {[0, 1, 2].map((item) => (
                 <span className="skeleton-row" key={item} />
               ))}
@@ -263,14 +318,13 @@ function Sidebar({
           {!loading && error && (
             <div className="sidebar-error" role="alert">
               <Icon name="alert" size={16} />
-              <span>Containers unavailable</span>
+              <span>Container nicht erreichbar</span>
             </div>
           )}
 
           {!loading && !error && containers.length === 0 && (
             <div className="empty-containers">
-              <span>No containers found</span>
-              <small>Start a container, then refresh.</small>
+              <span>Keine Container gefunden</span>
             </div>
           )}
 
@@ -296,15 +350,15 @@ function Sidebar({
           ))}
 
           {query && visibleContainers.length === 0 && containers.length > 0 && (
-            <p className="no-search-results">No matches for “{query}”</p>
+            <p className="no-search-results">Kein Treffer für „{query}“</p>
           )}
         </nav>
 
-        <div className="sidebar-status" aria-label="System status">
+        <div className="sidebar-status" aria-label="Systemstatus">
           <div className="status-heading">
-            <span>System status</span>
+            <span>Status</span>
             <button
-              aria-label="Refresh status"
+              aria-label="Status aktualisieren"
               className={`refresh-button ${loading ? "spinning" : ""}`}
               disabled={loading}
               onClick={onRefresh}
@@ -322,32 +376,29 @@ function Sidebar({
                 ? health.docker.connected
                   ? health.docker.mode === "demo"
                     ? "Demo"
-                    : "Connected"
+                    : "Verbunden"
                   : "Offline"
-                : "Checking"}
+                : "Prüft"}
             </strong>
           </div>
           <div className="status-row">
             <span
               className={`status-dot ${health?.ai.configured || demoProvider ? "online" : "offline"}`}
             />
-            <span>AI provider</span>
+            <span>KI-Anbieter</span>
             <strong>
               {health
                 ? health.ai.configured
-                  ? (health.ai.model ?? "Ready")
+                  ? (health.ai.model ?? "Bereit")
                   : demoProvider
-                    ? "Local demo"
-                    : "Not configured"
-                : "Checking"}
+                    ? "Lokale Demo"
+                    : "Nicht eingerichtet"
+                : "Prüft"}
             </strong>
           </div>
           {health?.docker.message && (
             <p className="status-note">{health.docker.message}</p>
           )}
-          <div className="read-only-note">
-            <Icon name="shield" size={14} /> Read-only access
-          </div>
         </div>
       </aside>
     </>
@@ -363,8 +414,8 @@ function EvidenceGrid({
 }) {
   if (evidence.length === 0) return null;
   return (
-    <section className={`evidence ${className}`} aria-label="Evidence">
-      <h3>Evidence</h3>
+    <section className={`evidence ${className}`} aria-label="Fakten">
+      <h3>Fakten</h3>
       <dl>
         {evidence.map((item, index) => (
           <div
@@ -373,7 +424,14 @@ function EvidenceGrid({
           >
             <dt>{item.label}</dt>
             <dd>{item.value}</dd>
-            <span className="sr-only">Severity: {item.severity ?? "info"}</span>
+            <span className="sr-only">
+              Einstufung:{" "}
+              {item.severity === "critical"
+                ? "Kritisch"
+                : item.severity === "warning"
+                  ? "Warnung"
+                  : "Info"}
+            </span>
           </div>
         ))}
       </dl>
@@ -381,56 +439,17 @@ function EvidenceGrid({
   );
 }
 
-function EvidenceInspector({
-  evidence,
-  hasConversation,
-}: {
-  evidence: Evidence[];
-  hasConversation: boolean;
-}) {
-  return (
-    <aside className="evidence-inspector" aria-label="Evidence inspector">
-      <div className="inspector-header">
-        <span className="inspector-kicker">Evidence inspector</span>
-        <h2>What supports the diagnosis</h2>
-        <p>Bounded facts attached to the most recent diagnosis.</p>
-      </div>
-
-      {evidence.length > 0 ? (
-        <EvidenceGrid evidence={evidence} className="inspector-evidence" />
-      ) : (
-        <div className="inspector-empty">
-          <span className="inspector-rule" aria-hidden="true" />
-          <strong>
-            {hasConversation ? "No evidence attached" : "Ready for evidence"}
-          </strong>
-          <p>
-            {hasConversation
-              ? "The latest response did not include structured evidence."
-              : "Supporting facts will appear here after an investigation."}
-          </p>
-        </div>
-      )}
-
-      <div className="inspector-footer">
-        <Icon name="shield" size={14} />
-        Read-only, bounded collection
-      </div>
-    </aside>
-  );
-}
-
 function ToolSteps({ steps }: { steps: InvestigationStep[] }) {
   const [expanded, setExpanded] = useState(false);
   if (steps.length === 0) return null;
   return (
-    <section className="tool-steps" aria-label="Investigation trace">
+    <section className="tool-steps" aria-label="Diagnoseschritte">
       <button
         aria-expanded={expanded}
         onClick={() => setExpanded((value) => !value)}
       >
         <span>
-          Investigation trace <b>{steps.length}</b>
+          Diagnoseschritte <b>{steps.length}</b>
         </span>
         <span className={`disclosure ${expanded ? "expanded" : ""}`}>
           <Icon name="chevron" size={14} />
@@ -478,14 +497,14 @@ function AssistantMessage({
       <div className="message-content">
         <div className="message-meta">
           <strong>Dopsy</strong>
-          <span>Diagnosis</span>
+          <span>Diagnose</span>
         </div>
         <p className="answer-text">{message.content}</p>
         <EvidenceGrid evidence={message.evidence} className="inline-evidence" />
         <ToolSteps steps={message.steps} />
         <button className="copy-button" onClick={copyAnswer}>
           <Icon name={copied ? "check" : "copy"} size={14} />{" "}
-          {copied ? "Copied" : "Copy answer"}
+          {copied ? "Kopiert" : "Antwort kopieren"}
         </button>
       </div>
     </article>
@@ -503,7 +522,7 @@ function InvestigationLoader({
     <article
       className="message assistant-message"
       aria-live="polite"
-      aria-label="Dopsy is preparing a diagnosis"
+      aria-label="Dopsy erstellt eine Diagnose"
     >
       <div className="assistant-avatar active">
         <img src="/brand/dopsy-mark.svg" alt="" />
@@ -511,7 +530,7 @@ function InvestigationLoader({
       <div className="message-content loading-message">
         <div className="message-meta">
           <strong>
-            Preparing a diagnosis{selectedName ? ` for ${selectedName}` : ""}
+            Diagnose erstellen{selectedName ? `: ${selectedName}` : ""}
           </strong>
         </div>
         <div className="loader-steps">
@@ -534,30 +553,18 @@ function InvestigationLoader({
 }
 
 type EmptyStateProps = {
-  selected?: Container;
   disabled: boolean;
   onPrompt: (prompt: string) => void;
 };
 
-function EmptyState({ selected, disabled, onPrompt }: EmptyStateProps) {
+function EmptyState({ disabled, onPrompt }: EmptyStateProps) {
   return (
     <section className="empty-state" aria-labelledby="welcome-title">
       <div className="empty-heading">
         <img src="/brand/dopsy-mark.svg" alt="" />
-        <span>New investigation</span>
+        <span>Neue Diagnose</span>
       </div>
-      <h1 id="welcome-title">What should we inspect?</h1>
-      <p>
-        Ask about a failure, slowdown, or unusual container state. Dopsy reads
-        only the bounded evidence needed to answer.
-      </p>
-      {selected && (
-        <div className="selected-context">
-          <span className={`state-dot ${stateTone(selected)}`} />
-          Scope: <strong>{selected.name}</strong>
-        </div>
-      )}
-      <h2>Common investigations</h2>
+      <h1 id="welcome-title">Was möchtest du wissen?</h1>
       <div className="prompt-grid">
         {sampleQuestions.map((item) => (
           <button
@@ -570,7 +577,6 @@ function EmptyState({ selected, disabled, onPrompt }: EmptyStateProps) {
             </span>
             <span>
               <strong>{item.title}</strong>
-              <small>{item.prompt}</small>
             </span>
             <Icon name="chevron" size={16} />
           </button>
@@ -583,6 +589,8 @@ function EmptyState({ selected, disabled, onPrompt }: EmptyStateProps) {
 export default function App() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [containers, setContainers] = useState<Container[]>([]);
+  const [overview, setOverview] = useState<OverviewResponse | null>(null);
+  const [activeView, setActiveView] = useState<WorkspaceView>("overview");
   const [selectedId, setSelectedId] = useState<string>();
   const [conversationId, setConversationId] = useState<string>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -590,6 +598,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [overviewError, setOverviewError] = useState<string | null>(null);
   const [loaderStep, setLoaderStep] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
@@ -597,23 +606,16 @@ export default function App() {
   const scopeVersionRef = useRef(0);
 
   const selected = containers.find((container) => container.id === selectedId);
-  const latestEvidence = useMemo(() => {
-    for (let index = messages.length - 1; index >= 0; index -= 1) {
-      const message = messages[index];
-      if (message.role === "assistant") {
-        return message.evidence;
-      }
-    }
-    return [];
-  }, [messages]);
-
   const loadData = async () => {
     setLoading(true);
     setLoadError(null);
-    const [healthResult, containersResult] = await Promise.allSettled([
-      api.health(),
-      api.containers(),
-    ]);
+    setOverviewError(null);
+    const [healthResult, containersResult, overviewResult] =
+      await Promise.allSettled([
+        api.health(),
+        api.containers(),
+        api.overview(),
+      ]);
 
     if (healthResult.status === "fulfilled") setHealth(healthResult.value);
     if (containersResult.status === "fulfilled") {
@@ -627,6 +629,15 @@ export default function App() {
         setSelectedId(undefined);
       }
     }
+    if (overviewResult.status === "fulfilled") {
+      setOverview(overviewResult.value);
+    } else {
+      setOverviewError(
+        overviewResult.reason instanceof Error
+          ? overviewResult.reason.message
+          : "Dopsy konnte die Übersicht nicht laden.",
+      );
+    }
 
     const failures = [healthResult, containersResult].filter(
       (result) => result.status === "rejected",
@@ -636,7 +647,7 @@ export default function App() {
       setLoadError(
         first.reason instanceof Error
           ? first.reason.message
-          : "Dopsy could not load system data.",
+          : "Dopsy konnte die Systemdaten nicht laden.",
       );
     }
     setLoading(false);
@@ -692,6 +703,11 @@ export default function App() {
     setSelectedId(containerId);
   };
 
+  const openInvestigation = (containerId?: string) => {
+    selectScope(containerId);
+    setActiveView("investigate");
+  };
+
   const submitMessage = async (
     message: string,
     containerId = selectedId,
@@ -744,7 +760,7 @@ export default function App() {
           content:
             error instanceof Error
               ? error.message
-              : "The diagnosis failed unexpectedly.",
+              : "Die Diagnose ist fehlgeschlagen.",
           originalMessage: trimmed,
           containerId,
         },
@@ -777,43 +793,48 @@ export default function App() {
   return (
     <div className="app-shell">
       <Sidebar
+        activeView={activeView}
         containers={containers}
         error={loadError}
         health={health}
         loading={loading}
         onClose={() => setSidebarOpen(false)}
         onRefresh={() => void loadData()}
-        onSelect={selectScope}
+        onSelect={openInvestigation}
+        onViewChange={setActiveView}
         open={sidebarOpen}
         selectedId={selectedId}
       />
 
-      <main className="workspace">
+      <main
+        className={`workspace ${activeView === "overview" ? "overview-view" : "investigate-view"}`}
+      >
         <header className="topbar">
           <div className="topbar-left">
             <button
               className="icon-button mobile-menu"
-              aria-label="Open sidebar"
+              aria-label="Seitenleiste öffnen"
               onClick={() => setSidebarOpen(true)}
             >
               <Icon name="menu" />
             </button>
             <div>
               <span className="mobile-brand">dopsy</span>
-              <h2>{selected ? selected.name : "All containers"}</h2>
-              <p>
-                {selected
-                  ? selected.image
-                  : "Ask across your Docker environment"}
-              </p>
+              <h2>
+                {activeView === "overview"
+                  ? "Übersicht"
+                  : selected
+                    ? selected.name
+                    : "Alle Container"}
+              </h2>
             </div>
           </div>
           <div className="topbar-actions">
             {health?.docker.mode === "demo" && (
-              <span className="mode-label">Demo data</span>
+              <span className="mode-label">Demodaten</span>
             )}
             <span className="access-label">
-              <span className="status-dot online" /> Read-only
+              <span className="status-dot online" /> Nur lesen
             </span>
             <a
               className="docs-link"
@@ -821,201 +842,198 @@ export default function App() {
               target="_blank"
               rel="noreferrer"
             >
-              Documentation <Icon name="external" size={13} />
+              Doku <Icon name="external" size={13} />
             </a>
           </div>
         </header>
 
         <div className="workspace-body">
-          <section className="primary-pane" aria-label="Diagnostic workspace">
-            {loadError && (
-              <div className="global-alert" role="alert">
-                <Icon name="alert" size={17} />
-                <span>
-                  <strong>Connection issue</strong>
-                  {loadError}
-                </span>
-                <button onClick={() => void loadData()}>Try again</button>
-              </div>
-            )}
-
-            {aiUnavailable && (
-              <div className="global-alert warning" role="alert">
-                <Icon name="alert" size={17} />
-                <span>
-                  <strong>AI provider not configured</strong>Add a supported
-                  provider in your Dopsy environment to start a diagnosis.
-                </span>
-              </div>
-            )}
-
-            {demoProvider && (
-              <div className="global-alert info" role="status">
-                <Icon name="shield" size={17} />
-                <span>
-                  <strong>Local demo diagnostics</strong>Built-in sample
-                  evidence is used. No provider is contacted.
-                </span>
-              </div>
-            )}
-
-            {dockerUnavailable && (
-              <div className="global-alert warning" role="alert">
-                <Icon name="alert" size={17} />
-                <span>
-                  <strong>Docker is unavailable</strong>
-                  {health?.docker.message ??
-                    "Check the Docker socket connection and refresh."}
-                </span>
-              </div>
-            )}
-
-            <div
-              className={`conversation ${messages.length === 0 ? "is-empty" : ""}`}
-            >
-              {messages.length === 0 ? (
-                <EmptyState
-                  disabled={inputDisabled}
-                  onPrompt={(prompt) => void submitMessage(prompt)}
-                  selected={selected}
-                />
-              ) : (
-                <div className="message-list" aria-live="polite">
-                  {messages.map((message) => {
-                    if (message.role === "user") {
-                      return (
-                        <article
-                          className="message user-message"
-                          key={message.id}
-                        >
-                          <div className="message-content">
-                            <div className="message-meta">
-                              <strong>You</strong>
-                              <span>Question</span>
-                            </div>
-                            {message.containerName && (
-                              <span className="message-context">
-                                Scope: {message.containerName}
-                              </span>
-                            )}
-                            <p>{message.content}</p>
-                          </div>
-                        </article>
-                      );
-                    }
-                    if (message.role === "error") {
-                      return (
-                        <article
-                          className="message assistant-message error-message"
-                          key={message.id}
-                          role="alert"
-                        >
-                          <div className="assistant-avatar error">
-                            <Icon name="alert" size={18} />
-                          </div>
-                          <div className="message-content">
-                            <div className="message-meta">
-                              <strong>Investigation stopped</strong>
-                            </div>
-                            <p>{message.content}</p>
-                            <button
-                              onClick={() =>
-                                void submitMessage(
-                                  message.originalMessage,
-                                  message.containerId,
-                                  message.containerId === selectedId
-                                    ? conversationId
-                                    : undefined,
-                                )
-                              }
-                              disabled={sending}
-                            >
-                              <Icon name="refresh" size={14} /> Try again
-                            </button>
-                          </div>
-                        </article>
-                      );
-                    }
-                    return (
-                      <AssistantMessage key={message.id} message={message} />
-                    );
-                  })}
-                  {sending && (
-                    <InvestigationLoader
-                      selectedName={selected?.name}
-                      step={loaderStep}
-                    />
-                  )}
-                  <div ref={endRef} />
-                </div>
-              )}
-            </div>
-
-            <div className="composer-wrap">
-              <form className="composer" onSubmit={onSubmit}>
-                {selected && (
-                  <div className="composer-context">
-                    <span className={`state-dot ${stateTone(selected)}`} />
-                    <span>{selected.name}</span>
-                    <button
-                      type="button"
-                      aria-label="Clear selected container"
-                      onClick={() => selectScope(undefined)}
-                    >
-                      <Icon name="close" size={12} />
+          {activeView === "overview" ? (
+            <Dashboard
+              data={overview}
+              error={overviewError}
+              loading={loading}
+              onInvestigate={(containerId) => openInvestigation(containerId)}
+              onRefresh={() => void loadData()}
+            />
+          ) : (
+            <>
+              <section className="primary-pane" aria-label="Diagnosebereich">
+                {loadError && (
+                  <div className="global-alert" role="alert">
+                    <Icon name="alert" size={17} />
+                    <span>
+                      <strong>Verbindung gestört</strong> {loadError}
+                    </span>
+                    <button onClick={() => void loadData()}>
+                      Erneut versuchen
                     </button>
                   </div>
                 )}
-                <div className="composer-row">
-                  <textarea
-                    aria-label="Ask Dopsy"
-                    disabled={inputDisabled}
-                    onChange={(event) => setInput(event.target.value)}
-                    onKeyDown={onTextareaKeyDown}
-                    placeholder={
-                      aiUnavailable
-                        ? "Configure an AI provider to begin…"
-                        : dockerUnavailable
-                          ? "Connect Docker to begin…"
-                          : "Ask what happened in your containers…"
-                    }
-                    ref={textareaRef}
-                    rows={1}
-                    value={input}
-                  />
-                  <button
-                    className="send-button"
-                    type="submit"
-                    disabled={inputDisabled || !input.trim()}
-                    aria-label="Send question"
-                  >
-                    {sending ? (
-                      <span className="button-spinner" />
-                    ) : (
-                      <Icon name="send" size={18} />
-                    )}
-                  </button>
-                </div>
-                <div className="composer-footer">
-                  <span>Enter to send · Shift + Enter for a new line</span>
-                  <span>
-                    <Icon name="shield" size={12} /> Read-only by design
-                  </span>
-                </div>
-              </form>
-              <p className="disclaimer privacy-disclaimer">
-                <Icon name="shield" size={12} />
-                {demoProvider
-                  ? "Local demo: no AI provider is contacted."
-                  : "Privacy: bounded log excerpts can contain sensitive data and are sent to your configured AI provider."}
-              </p>
-            </div>
-          </section>
 
-          <EvidenceInspector
-            evidence={latestEvidence}
-            hasConversation={messages.length > 0}
-          />
+                {aiUnavailable && (
+                  <div className="global-alert warning" role="alert">
+                    <Icon name="alert" size={17} />
+                    <span>
+                      <strong>KI nicht eingerichtet</strong> Richte einen
+                      KI-Anbieter in Dopsy ein.
+                    </span>
+                  </div>
+                )}
+
+                {dockerUnavailable && (
+                  <div className="global-alert warning" role="alert">
+                    <Icon name="alert" size={17} />
+                    <span>
+                      <strong>Docker nicht erreichbar</strong>{" "}
+                      {health?.docker.message ??
+                        "Docker-Verbindung prüfen und aktualisieren."}
+                    </span>
+                  </div>
+                )}
+
+                <div
+                  className={`conversation ${messages.length === 0 ? "is-empty" : ""}`}
+                >
+                  {messages.length === 0 ? (
+                    <EmptyState
+                      disabled={inputDisabled}
+                      onPrompt={(prompt) => void submitMessage(prompt)}
+                    />
+                  ) : (
+                    <div className="message-list" aria-live="polite">
+                      {messages.map((message) => {
+                        if (message.role === "user") {
+                          return (
+                            <article
+                              className="message user-message"
+                              key={message.id}
+                            >
+                              <div className="message-content">
+                                <div className="message-meta">
+                                  <strong>Du</strong>
+                                </div>
+                                {message.containerName && (
+                                  <span className="message-context">
+                                    Container: {message.containerName}
+                                  </span>
+                                )}
+                                <p>{message.content}</p>
+                              </div>
+                            </article>
+                          );
+                        }
+                        if (message.role === "error") {
+                          return (
+                            <article
+                              className="message assistant-message error-message"
+                              key={message.id}
+                              role="alert"
+                            >
+                              <div className="assistant-avatar error">
+                                <Icon name="alert" size={18} />
+                              </div>
+                              <div className="message-content">
+                                <div className="message-meta">
+                                  <strong>Diagnose gestoppt</strong>
+                                </div>
+                                <p>{message.content}</p>
+                                <button
+                                  onClick={() =>
+                                    void submitMessage(
+                                      message.originalMessage,
+                                      message.containerId,
+                                      message.containerId === selectedId
+                                        ? conversationId
+                                        : undefined,
+                                    )
+                                  }
+                                  disabled={sending}
+                                >
+                                  <Icon name="refresh" size={14} /> Erneut
+                                  versuchen
+                                </button>
+                              </div>
+                            </article>
+                          );
+                        }
+                        return (
+                          <AssistantMessage
+                            key={message.id}
+                            message={message}
+                          />
+                        );
+                      })}
+                      {sending && (
+                        <InvestigationLoader
+                          selectedName={selected?.name}
+                          step={loaderStep}
+                        />
+                      )}
+                      <div ref={endRef} />
+                    </div>
+                  )}
+                </div>
+
+                <div className="composer-wrap">
+                  <form className="composer" onSubmit={onSubmit}>
+                    {selected && (
+                      <div className="composer-context">
+                        <span className={`state-dot ${stateTone(selected)}`} />
+                        <span>{selected.name}</span>
+                        <button
+                          type="button"
+                          aria-label="Container-Auswahl aufheben"
+                          onClick={() => selectScope(undefined)}
+                        >
+                          <Icon name="close" size={12} />
+                        </button>
+                      </div>
+                    )}
+                    <div className="composer-row">
+                      <textarea
+                        aria-label="Dopsy fragen"
+                        disabled={inputDisabled}
+                        onChange={(event) => setInput(event.target.value)}
+                        onKeyDown={onTextareaKeyDown}
+                        placeholder={
+                          aiUnavailable
+                            ? "KI-Anbieter einrichten…"
+                            : dockerUnavailable
+                              ? "Docker verbinden…"
+                              : "Stell deine Frage…"
+                        }
+                        ref={textareaRef}
+                        rows={1}
+                        value={input}
+                      />
+                      <button
+                        className="send-button"
+                        type="submit"
+                        disabled={inputDisabled || !input.trim()}
+                        aria-label="Frage senden"
+                      >
+                        {sending ? (
+                          <span className="button-spinner" />
+                        ) : (
+                          <Icon name="send" size={18} />
+                        )}
+                      </button>
+                    </div>
+                    <div className="composer-footer">
+                      <span>Enter: Senden · Shift + Enter: neue Zeile</span>
+                    </div>
+                  </form>
+                  <p className="disclaimer privacy-disclaimer">
+                    <Icon name="shield" size={12} />
+                    {demoProvider
+                      ? "Lokale Demo: Keine Daten an einen KI-Anbieter."
+                      : "Datenschutz: Begrenzte Logauszüge können sensible Daten enthalten und werden an deinen KI-Anbieter gesendet."}
+                  </p>
+                </div>
+              </section>
+            </>
+          )}
         </div>
       </main>
     </div>

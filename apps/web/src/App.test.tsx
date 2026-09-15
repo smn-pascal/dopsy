@@ -21,6 +21,45 @@ const containers = [
   },
 ];
 
+const overview = {
+  generatedAt: 1_788_908_400,
+  summary: {
+    total: 1,
+    running: 1,
+    healthy: 1,
+    needsReview: 0,
+  },
+  collection: {
+    observed: 1,
+    total: 1,
+    partial: false,
+    truncated: false,
+  },
+  containers: [
+    {
+      ...containers[0],
+      details: {
+        running: true,
+        oomKilled: false,
+        exitCode: 0,
+        restartCount: 0,
+        startedAt: "2026-09-12T20:00:00Z",
+      },
+      metrics: {
+        cpuPercent: 1.2,
+        memoryUsageBytes: 96 * 1024 * 1024,
+        memoryLimitBytes: 512 * 1024 * 1024,
+        memoryPercent: 18.75,
+        readAt: 1_788_908_400,
+      },
+      assessment: {
+        level: "ok",
+        summary: "No current warning signals.",
+      },
+    },
+  ],
+};
+
 function jsonResponse(body: unknown, ok = true, status = 200) {
   return Promise.resolve({
     ok,
@@ -42,6 +81,7 @@ describe("Dopsy app", () => {
         const url = input.toString();
         if (url.endsWith("/api/health")) return jsonResponse(health);
         if (url.endsWith("/api/containers")) return jsonResponse(containers);
+        if (url.endsWith("/api/overview")) return jsonResponse(overview);
         return jsonResponse({
           conversationId: "conversation-1",
           answer: "The API container looks healthy.",
@@ -57,22 +97,50 @@ describe("Dopsy app", () => {
     vi.unstubAllGlobals();
   });
 
-  it("loads system and container status", async () => {
+  it("opens the overview with container and system status", async () => {
     render(<App />);
-    expect(await screen.findByText("api")).toBeInTheDocument();
-    expect(screen.getByText("Connected")).toBeInTheDocument();
-    expect(screen.getByText("test-model")).toBeInTheDocument();
     expect(
-      screen.getByText(/bounded log excerpts can contain sensitive data/i),
+      await screen.findByRole("heading", {
+        name: "Übersicht",
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: "Bereiche" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Übersicht" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(
+      screen.getByRole("button", { name: "Diagnose" }),
+    ).not.toHaveAttribute("aria-current");
+    expect(screen.getByText("Verbunden")).toBeInTheDocument();
+    expect(screen.getByText("test-model")).toBeInTheDocument();
+    expect(screen.getByText("Gesamt")).toBeInTheDocument();
+    expect(screen.getByRole("table")).toHaveTextContent("api");
+    expect(
+      screen.getByRole("columnheader", { name: "CPU" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("progressbar", { name: /api: RAM/i }),
+    ).toHaveAttribute("aria-valuenow", "19");
+    expect(screen.getByRole("button", { name: "Aktualisieren" })).toBeEnabled();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Diagnose" }));
+    expect(
+      screen.getByText(/Begrenzte Logauszüge können sensible Daten enthalten/i),
     ).toBeInTheDocument();
   });
 
   it("sends a focused question and renders the diagnosis", async () => {
     const user = userEvent.setup();
     render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Diagnose" }));
     await user.click(await screen.findByText("api"));
-    await user.type(screen.getByLabelText("Ask Dopsy"), "Why is it slow?");
-    await user.click(screen.getByLabelText("Send question"));
+    await user.type(screen.getByLabelText("Dopsy fragen"), "Why is it slow?");
+    await user.click(screen.getByLabelText("Frage senden"));
 
     expect(
       await screen.findByText("The API container looks healthy."),
@@ -94,7 +162,9 @@ describe("Dopsy app", () => {
   it("shows a useful API connection error", async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new Error("offline"));
     render(<App />);
-    expect(await screen.findByText("Connection issue")).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Diagnose" }));
+    expect(await screen.findByText("Verbindung gestört")).toBeInTheDocument();
     expect(screen.getByText(/could not reach the API/i)).toBeInTheDocument();
   });
 
@@ -109,6 +179,7 @@ describe("Dopsy app", () => {
         });
       }
       if (url.endsWith("/api/containers")) return jsonResponse(containers);
+      if (url.endsWith("/api/overview")) return jsonResponse(overview);
       return jsonResponse({
         conversationId: "demo-conversation",
         answer: "This is a local demo diagnosis.",
@@ -120,17 +191,16 @@ describe("Dopsy app", () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await user.click(await screen.findByRole("button", { name: "Diagnose" }));
+
+    expect(await screen.findByText("Demodaten")).toBeInTheDocument();
     expect(
-      await screen.findByText("Local demo diagnostics"),
+      screen.getByText(/Keine Daten an einen KI-Anbieter/i),
     ).toBeInTheDocument();
-    expect(screen.getByText("Local demo")).toBeInTheDocument();
-    expect(
-      screen.getByText(/no AI provider is contacted/i),
-    ).toBeInTheDocument();
-    const input = screen.getByLabelText("Ask Dopsy");
+    const input = screen.getByLabelText("Dopsy fragen");
     expect(input).toBeEnabled();
     await user.type(input, "What happened?");
-    await user.click(screen.getByLabelText("Send question"));
+    await user.click(screen.getByLabelText("Frage senden"));
     expect(
       await screen.findByText("This is a local demo diagnosis."),
     ).toBeInTheDocument();
@@ -146,6 +216,7 @@ describe("Dopsy app", () => {
         });
       }
       if (url.endsWith("/api/containers")) return jsonResponse(containers);
+      if (url.endsWith("/api/overview")) return jsonResponse(overview);
       return jsonResponse({
         conversationId: "configured-demo-conversation",
         answer: "Configured provider response.",
@@ -154,14 +225,17 @@ describe("Dopsy app", () => {
       });
     });
 
+    const user = userEvent.setup();
     render(<App />);
 
-    expect(await screen.findByText("Demo data")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Diagnose" }));
+
+    expect(await screen.findByText("Demodaten")).toBeInTheDocument();
     expect(
-      screen.getByText(/bounded log excerpts can contain sensitive data/i),
+      screen.getByText(/Begrenzte Logauszüge können sensible Daten enthalten/i),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(/no AI provider is contacted/i),
+      screen.queryByText(/Keine Daten an einen KI-Anbieter/i),
     ).not.toBeInTheDocument();
   });
 
@@ -171,6 +245,7 @@ describe("Dopsy app", () => {
       const url = input.toString();
       if (url.endsWith("/api/health")) return jsonResponse(health);
       if (url.endsWith("/api/containers")) return jsonResponse(containers);
+      if (url.endsWith("/api/overview")) return jsonResponse(overview);
       chatCount += 1;
       return jsonResponse({
         conversationId: `conversation-${chatCount}`,
@@ -182,21 +257,22 @@ describe("Dopsy app", () => {
 
     const user = userEvent.setup();
     render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Diagnose" }));
     await user.click(await screen.findByText("api"));
 
-    const input = screen.getByLabelText("Ask Dopsy");
+    const input = screen.getByLabelText("Dopsy fragen");
     await user.type(input, "First question");
-    await user.click(screen.getByLabelText("Send question"));
+    await user.click(screen.getByLabelText("Frage senden"));
     expect(await screen.findByText("Diagnosis 1")).toBeInTheDocument();
 
     await user.type(input, "Follow-up question");
-    await user.click(screen.getByLabelText("Send question"));
+    await user.click(screen.getByLabelText("Frage senden"));
     expect(await screen.findByText("Diagnosis 2")).toBeInTheDocument();
 
-    await user.click(screen.getByText("All containers"));
+    await user.click(screen.getByText("Alle Container"));
     expect(screen.getByText("Diagnosis 1")).toBeInTheDocument();
     await user.type(input, "Stack-wide question");
-    await user.click(screen.getByLabelText("Send question"));
+    await user.click(screen.getByLabelText("Frage senden"));
     expect(await screen.findByText("Diagnosis 3")).toBeInTheDocument();
 
     const bodies = vi
@@ -217,5 +293,169 @@ describe("Dopsy app", () => {
       },
       { message: "Stack-wide question" },
     ]);
+  });
+
+  it("opens a correctly scoped investigation from the overview", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "api untersuchen" }),
+    );
+    expect(screen.getByRole("button", { name: "Diagnose" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(
+      screen.getByLabelText("Container-Auswahl aufheben"),
+    ).toBeInTheDocument();
+
+    await user.type(
+      screen.getByLabelText("Dopsy fragen"),
+      "Explain this snapshot",
+    );
+    await user.click(screen.getByLabelText("Frage senden"));
+
+    await waitFor(() => {
+      const chatCall = vi
+        .mocked(fetch)
+        .mock.calls.find(([request]) =>
+          request.toString().endsWith("/api/chat"),
+        );
+      expect(JSON.parse(String(chatCall?.[1]?.body))).toEqual({
+        message: "Explain this snapshot",
+        containerId: "container-1",
+      });
+    });
+  });
+
+  it("keeps the overview usable when AI is not configured", async () => {
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url.endsWith("/api/health")) {
+        return jsonResponse({ ...health, ai: { configured: false } });
+      }
+      if (url.endsWith("/api/containers")) return jsonResponse(containers);
+      if (url.endsWith("/api/overview")) return jsonResponse(overview);
+      return jsonResponse({}, false, 503);
+    });
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Übersicht",
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Aktualisieren" })).toBeEnabled();
+    expect(screen.queryByText("KI nicht eingerichtet")).not.toBeInTheDocument();
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Diagnose" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("KI nicht eingerichtet");
+    expect(screen.getByRole("textbox", { name: "Dopsy fragen" })).toBeDisabled();
+  });
+
+  it("shows partial collection coverage without inventing missing metrics", async () => {
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url.endsWith("/api/health")) return jsonResponse(health);
+      if (url.endsWith("/api/containers")) return jsonResponse(containers);
+      if (url.endsWith("/api/overview")) {
+        return jsonResponse({
+          ...overview,
+          collection: {
+            observed: 1,
+            total: 3,
+            partial: true,
+            truncated: true,
+          },
+          containers: [
+            {
+              ...overview.containers[0],
+              metrics: undefined,
+              assessment: {
+                level: "unknown",
+                summary: "Resource snapshot could not be collected.",
+              },
+            },
+          ],
+        });
+      }
+      return jsonResponse({});
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText(/Daten teilweise/i)).toHaveTextContent(
+      "1/3",
+    );
+    const row = screen.getByRole("row", { name: /api/i });
+    expect(row).toHaveTextContent("–");
+    expect(row).not.toHaveTextContent("0,0 %");
+  });
+
+  it("puts critical containers before healthy containers", async () => {
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url.endsWith("/api/health")) return jsonResponse(health);
+      if (url.endsWith("/api/containers")) return jsonResponse(containers);
+      if (url.endsWith("/api/overview")) {
+        return jsonResponse({
+          ...overview,
+          summary: { ...overview.summary, total: 2, needsReview: 1 },
+          collection: { ...overview.collection, observed: 2, total: 2 },
+          containers: [
+            overview.containers[0],
+            {
+              id: "container-2",
+              name: "worker",
+              image: "dopsy/worker:latest",
+              state: "exited",
+              health: "healthy",
+              status: "Exited (137) 2 minutes ago",
+              created: 1,
+              details: {
+                running: false,
+                oomKilled: true,
+                exitCode: 137,
+                restartCount: 4,
+              },
+              assessment: {
+                level: "critical",
+                summary: "Docker reports an out-of-memory termination.",
+              },
+            },
+          ],
+        });
+      }
+      return jsonResponse({});
+    });
+
+    render(<App />);
+
+    const rows = await screen.findAllByRole("row");
+    expect(rows[1]).toHaveTextContent("worker");
+    expect(rows[1]).toHaveTextContent("Beendet");
+    expect(rows[1]).not.toHaveTextContent("Gesund");
+    expect(rows[1]).toHaveTextContent("Speichermangel");
+    expect(rows[2]).toHaveTextContent("api");
+  });
+
+  it("refreshes the snapshot only when requested", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole("heading", { name: "Übersicht", level: 1 });
+
+    const overviewCalls = () =>
+      vi
+        .mocked(fetch)
+        .mock.calls.filter(([request]) =>
+          request.toString().endsWith("/api/overview"),
+        ).length;
+
+    expect(overviewCalls()).toBe(1);
+    await user.click(screen.getByRole("button", { name: "Aktualisieren" }));
+    await waitFor(() => expect(overviewCalls()).toBe(2));
   });
 });

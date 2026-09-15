@@ -21,6 +21,47 @@ export type Container = {
   created: number;
 };
 
+export type AssessmentLevel = "ok" | "warning" | "critical" | "unknown";
+
+export type ContainerOverview = Container & {
+  details?: {
+    running: boolean;
+    oomKilled: boolean;
+    exitCode: number;
+    restartCount: number;
+    startedAt?: string;
+    finishedAt?: string;
+  };
+  metrics?: {
+    cpuPercent: number;
+    memoryUsageBytes: number;
+    memoryLimitBytes: number;
+    memoryPercent: number;
+    readAt: number;
+  };
+  assessment: {
+    level: AssessmentLevel;
+    summary: string;
+  };
+};
+
+export type OverviewResponse = {
+  generatedAt: number;
+  summary: {
+    total: number;
+    running: number;
+    healthy: number;
+    needsReview: number;
+  };
+  collection: {
+    observed: number;
+    total: number;
+    partial: boolean;
+    truncated: boolean;
+  };
+  containers: ContainerOverview[];
+};
+
 export type Evidence = {
   label: string;
   value: string;

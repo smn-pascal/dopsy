@@ -1,4 +1,9 @@
-import type { ChatResponse, Container, HealthResponse } from "./types";
+import type {
+  ChatResponse,
+  Container,
+  HealthResponse,
+  OverviewResponse,
+} from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -46,6 +51,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<HealthResponse>("/api/health"),
   containers: () => request<Container[]>("/api/containers"),
+  overview: () => request<OverviewResponse>("/api/overview"),
   chat: (message: string, containerId?: string, conversationId?: string) =>
     request<ChatResponse>("/api/chat", {
       method: "POST",
