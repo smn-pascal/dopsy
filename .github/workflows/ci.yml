@@ -33,6 +33,18 @@ jobs:
       - run: pnpm docs:build
       - run: docker build --target dopsy --tag dopsy:ci .
       - run: docker build --target dopsy-proxy --tag dopsy-proxy:ci .
+      - name: Validate image Compose overlay and security boundary
+        run: |
+          docker compose -f compose.yaml -f compose.images.yaml config --format json |
+            node -e '
+              const c=JSON.parse(require("fs").readFileSync(0,"utf8"));
+              const app=c.services.dopsy, proxy=c.services["docker-proxy"];
+              if(app.build || proxy.build || app.image!=="ghcr.io/smn-pascal/dopsy:v0.1.3" || proxy.image!=="ghcr.io/smn-pascal/dopsy-proxy:v0.1.3") process.exit(1);
+              if(!app.ports?.length || app.ports.some(port=>port.host_ip!=="127.0.0.1")) process.exit(1);
+              if(app.volumes?.some(volume=>volume.source==="/var/run/docker.sock")) process.exit(1);
+              if(!proxy.volumes?.some(volume=>volume.source==="/var/run/docker.sock" && volume.read_only)) process.exit(1);
+              if(!c.networks["docker-api"].internal || !app.read_only || !proxy.read_only) process.exit(1);
+            '
       - name: Smoke test fresh Compose demo on Linux
         if: github.event_name != 'pull_request'
         env:

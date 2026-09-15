@@ -14,7 +14,7 @@ jobs:
       contents: read
     uses: ./.github/workflows/ci.yml
 
-  release:
+  prepare:
     needs: verify
     runs-on: ubuntu-latest
     steps:
@@ -24,6 +24,54 @@ jobs:
         run: |
           grep -Fq "\"version\": \"${GITHUB_REF_NAME#v}\"" apps/web/package.json
           test -f ".github/release-notes/$GITHUB_REF_NAME.md"
+
+  images:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Publish versioned application image
+        run: >-
+          docker buildx build --platform linux/amd64,linux/arm64
+          --target dopsy
+          --tag "ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME}"
+          --push .
+      - name: Publish versioned proxy image
+        run: >-
+          docker buildx build --platform linux/amd64,linux/arm64
+          --target dopsy-proxy
+          --tag "ghcr.io/${GITHUB_REPOSITORY}-proxy:${GITHUB_REF_NAME}"
+          --push .
+      - name: Smoke test published images without building
+        env:
+          DOPSY_DEMO_MODE: "true"
+          DOPSY_PORT: "18081"
+          DOPSY_IMAGE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          trap 'docker compose -f compose.yaml -f compose.images.yaml down --volumes' EXIT
+          docker compose -f compose.yaml -f compose.images.yaml up --pull always --no-build --detach
+          curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 1 http://127.0.0.1:18081/api/health |
+            node -e 'const value=JSON.parse(require("fs").readFileSync(0,"utf8")); if(value.status!=="ok" || !value.docker.connected || value.docker.mode!=="demo") process.exit(1)'
+          curl --fail --silent --show-error --header 'Content-Type: application/json' --data '{"message":"Why did demo-api stop?","containerId":"demo-api"}' http://127.0.0.1:18081/api/chat |
+            node -e 'const value=JSON.parse(require("fs").readFileSync(0,"utf8")); if(typeof value.answer!=="string" || !value.answer.trim() || !Array.isArray(value.evidence)) process.exit(1)'
+
+  release:
+    needs: images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

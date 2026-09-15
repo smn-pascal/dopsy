@@ -1,0 +1,12 @@
+# Merge with compose.yaml to preserve the localhost and read-only defaults.
+# Docker Compose 2.24.4+ understands !reset and removes the local build context.
+services:
+  dopsy:
+    build: !reset null
+    image: ghcr.io/smn-pascal/dopsy:${DOPSY_IMAGE_TAG:-v0.1.3}
+    pull_policy: always
+
+  docker-proxy:
+    build: !reset null
+    image: ghcr.io/smn-pascal/dopsy-proxy:${DOPSY_IMAGE_TAG:-v0.1.3}
+    pull_policy: always

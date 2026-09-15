@@ -19,6 +19,7 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/dopsy ./cmd/dopsy 
 
 FROM gcr.io/distroless/static-debian12:nonroot AS dopsy
 WORKDIR /app
+LABEL org.opencontainers.image.source="https://github.com/smn-pascal/dopsy"
 COPY --from=go-build /out/dopsy /dopsy
 COPY --from=web-build /src/apps/web/dist /app/web
 ENV DOPSY_ADDR=:8080 \
@@ -27,7 +28,7 @@ EXPOSE 8080
 ENTRYPOINT ["/dopsy"]
 
 FROM gcr.io/distroless/static-debian12 AS dopsy-proxy
+LABEL org.opencontainers.image.source="https://github.com/smn-pascal/dopsy"
 COPY --from=go-build /out/dopsy-proxy /dopsy-proxy
 EXPOSE 2375
 ENTRYPOINT ["/dopsy-proxy"]
-

@@ -5,6 +5,17 @@ All notable changes to Dopsy are documented in this file. The project follows
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-09-15
+
+### Added
+
+- Versioned Linux amd64 and arm64 images for the application and restricted
+  Docker proxy, published to GitHub Container Registry after release checks.
+- A pull-only Compose overlay that keeps the existing localhost, socket, and
+  read-only boundaries while removing the local build context.
+- A release smoke test that starts the published images and runs a demo
+  diagnosis before creating the GitHub release.
+
 ## [0.1.2] - 2026-09-15
 
 ### Added
@@ -64,7 +75,8 @@ All notable changes to Dopsy are documented in this file. The project follows
 - Agent rounds, tool calls, log windows, output sizes, request time, and
   concurrent diagnoses are bounded.
 
-[Unreleased]: https://github.com/smn-pascal/dopsy/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/smn-pascal/dopsy/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/smn-pascal/dopsy/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/smn-pascal/dopsy/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/smn-pascal/dopsy/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/smn-pascal/dopsy/releases/tag/v0.1.0

@@ -60,8 +60,22 @@ The model never receives Docker credentials and cannot call Docker directly. Dop
 
 ## Quick start
 
+Use the published images without cloning or building the source:
+
 ```bash
-git clone --depth 1 --branch v0.1.2 https://github.com/smn-pascal/dopsy.git
+mkdir dopsy && cd dopsy
+curl -fsSLO https://raw.githubusercontent.com/smn-pascal/dopsy/v0.1.3/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/smn-pascal/dopsy/v0.1.3/compose.images.yaml
+curl -fsSLo .env https://raw.githubusercontent.com/smn-pascal/dopsy/v0.1.3/.env.example
+docker compose -f compose.yaml -f compose.images.yaml up --pull always --no-build -d
+```
+
+This route needs Docker Compose 2.24.4 or newer. The two images share one
+version tag and the existing Compose security settings. For a source build
+instead, check out the same tag:
+
+```bash
+git clone --depth 1 --branch v0.1.3 https://github.com/smn-pascal/dopsy.git
 cd dopsy
 cp .env.example .env
 docker compose up --build

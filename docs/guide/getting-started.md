@@ -7,8 +7,9 @@ put it behind an authenticated TLS reverse proxy.
 
 ## Requirements
 
-- Git
 - Docker Engine with Docker Compose
+- Docker Compose 2.24.4 or newer for the published-image overlay
+- Git only if you want to build from source
 - Optional: access to a tool-capable OpenAI-compatible endpoint
 
 ## Run the local demo
@@ -17,13 +18,28 @@ The demo diagnosis uses fixed container data and does not inspect your running
 workloads. It needs no AI provider.
 
 ```bash
-git clone --depth 1 --branch v0.1.2 https://github.com/smn-pascal/dopsy.git
+mkdir dopsy && cd dopsy
+curl -fsSLO https://raw.githubusercontent.com/smn-pascal/dopsy/v0.1.3/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/smn-pascal/dopsy/v0.1.3/compose.images.yaml
+curl -fsSLo .env https://raw.githubusercontent.com/smn-pascal/dopsy/v0.1.3/.env.example
+DOPSY_DEMO_MODE=true docker compose -f compose.yaml -f compose.images.yaml up --pull always --no-build -d
+```
+
+Both prebuilt images use the same v0.1.3 tag. The overlay removes the local
+build definitions, pulls the tagged images, and retains the base Compose
+file's localhost binding and socket isolation. No Git checkout or local
+application build is required.
+
+To build the published source yourself instead:
+
+```bash
+git clone --depth 1 --branch v0.1.3 https://github.com/smn-pascal/dopsy.git
 cd dopsy
 cp .env.example .env
 DOPSY_DEMO_MODE=true docker compose up --build -d
 ```
 
-This checks out the published v0.1.2 source rather than the moving `main`
+This checks out the published v0.1.3 source rather than the moving `main`
 branch. The Compose setup builds the application and companion proxy locally.
 
 Open `http://localhost:8080`. The overview immediately shows the fixed demo
@@ -31,7 +47,7 @@ containers and their current resource snapshot without contacting an AI
 provider. Choose **Untersuchen** on `demo-api` and ask why it stopped to try the
 diagnostic flow.
 
-The standard Compose file still starts Dopsy's companion proxy and mounts the
+Both Compose routes still start Dopsy's companion proxy and mount the
 Docker socket into that proxy, even in demo mode. Dopsy itself uses its built-in
 sample gateway for the demo and does not request production container data.
 
@@ -48,9 +64,13 @@ Set demo mode to false in `.env`, then start the recommended Compose stack:
 DOPSY_DEMO_MODE=false
 ```
 
+If you used the published images, run:
+
 ```bash
-docker compose up --build -d
+docker compose -f compose.yaml -f compose.images.yaml up --pull always --no-build -d
 ```
+
+If you chose the source checkout instead, run `docker compose up --build -d`.
 
 The application reaches Docker only through the restricted companion proxy in
 the Compose network.
