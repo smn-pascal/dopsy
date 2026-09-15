@@ -19,10 +19,23 @@ exit code, CPU use, and memory use. These values are point-in-time facts. Dopsy
 does not present them as trends and does not infer a root cause from the
 dashboard alone.
 
-The web dashboard keeps this view compact: a four-number status line and a
-container list. Its German status labels are display text, not additional
-diagnoses. For a stopped container, an older health-check result does not
-override the stopped state in the list.
+The web dashboard uses a four-number status band, two snapshot charts, and
+individual container cards. The CPU columns show up to five observed containers
+with current statistics, ranked by current CPU use. Their labelled scale adapts
+to the values and can exceed 100% on multi-core workloads. There is no time
+axis, history, or change percentage.
+
+The state ring compares **running** with **not running** across the full
+container list. The coloured assessment bar describes only the observed subset
+and is not a fleet-wide health rate. When the 50-container cap applies, Dopsy
+prioritizes conspicuous states for observation, so that subset is not a random
+sample. Container cards show available CPU and RAM facts; a RAM percentage bar
+appears only when Docker reports a memory limit. Missing readings are shown as
+unavailable, never as zero.
+
+German status labels are display text, not additional diagnoses. For a stopped
+container, an older health-check result does not override the stopped state on
+its card.
 
 Containers without a Docker health check are not labelled unhealthy. An exited
 container is marked for review because it is not running, but the dashboard
@@ -48,8 +61,9 @@ needs-review, detail, and resource values cover only the observed subset.
 ## Partial snapshots
 
 A failure to read one container does not discard the useful facts collected
-for the others. The dashboard marks the snapshot as partial and shows missing
-details or metrics as unavailable instead of displaying zero.
+for the others. The dashboard marks the snapshot as partial near the top and
+shows the observed/total coverage. Missing details or metrics remain unavailable
+instead of displaying zero.
 
 If the initial container list cannot be read, the overview fails because there
 is no reliable fleet snapshot to present. Use the refresh control after fixing

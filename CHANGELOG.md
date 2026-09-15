@@ -16,6 +16,8 @@ All notable changes to Dopsy are documented in this file. The project follows
 
 - The web interface now opens on the overview and keeps the diagnostic chat as
   a separate investigation workspace. Interface copy is shorter and in German.
+- The overview now uses snapshot charts and individual container cards instead
+  of a container table, without presenting uncollected historical trends.
 
 ## [0.1.1] - 2026-09-10
 
