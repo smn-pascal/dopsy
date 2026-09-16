@@ -39,9 +39,11 @@ func (f *repeatingProvider) Complete(context.Context, CompletionRequest) (Comple
 }
 
 type fakeGateway struct {
-	logsOptions domain.LogOptions
-	logsText    string
-	statsCalls  int
+	logsOptions  domain.LogOptions
+	logsText     string
+	statsCalls   int
+	eventOptions domain.EventOptions
+	eventCalls   int
 }
 
 func (f *fakeGateway) Mode() string                { return "demo" }
@@ -66,6 +68,12 @@ func (f *fakeGateway) ContainerLogs(_ context.Context, _ string, options domain.
 func (f *fakeGateway) ContainerStats(context.Context, string) (domain.Stats, error) {
 	f.statsCalls++
 	return domain.Stats{CPUPercent: 4.2, MemoryUsage: 250, MemoryLimit: 256, MemoryPercent: 97.6}, nil
+}
+
+func (f *fakeGateway) ContainerEvents(_ context.Context, _ string, options domain.EventOptions) (domain.Events, error) {
+	f.eventCalls++
+	f.eventOptions = options
+	return domain.Events{Items: []domain.ContainerEvent{{Action: "oom", Time: options.Until - 1}}, Since: options.Since, Until: options.Until, HistoryLimited: true}, nil
 }
 
 func TestAgentRunsMultiStepToolLoop(t *testing.T) {
@@ -107,8 +115,8 @@ func TestAgentFallbackDiagnosesDemoOOM(t *testing.T) {
 	if !strings.Contains(strings.ToLower(diagnosis.Answer), "out of memory") {
 		t.Fatalf("answer = %q, want deterministic OOM diagnosis", diagnosis.Answer)
 	}
-	if len(diagnosis.Steps) != 2 {
-		t.Fatalf("steps = %+v, want inspect and logs", diagnosis.Steps)
+	if len(diagnosis.Steps) != 3 {
+		t.Fatalf("steps = %+v, want inspect, logs, and demo events", diagnosis.Steps)
 	}
 }
 

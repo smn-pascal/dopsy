@@ -13,7 +13,9 @@ func (a *Agent) fallback(ctx context.Context, containerID string) (domain.Diagno
 		Evidence: make([]domain.Evidence, 0),
 		Steps:    make([]domain.Step, 0),
 	}
+	toolCalls := 0
 	if containerID == "" {
+		toolCalls++
 		containers, err := a.docker.ListContainers(ctx)
 		if err != nil {
 			return domain.Diagnosis{}, fmt.Errorf("list containers: %w", err)
@@ -26,6 +28,7 @@ func (a *Agent) fallback(ctx context.Context, containerID string) (domain.Diagno
 		containerID = containers[0].ID
 	}
 
+	toolCalls++
 	inspection, err := a.docker.InspectContainer(ctx, containerID)
 	if err != nil {
 		return domain.Diagnosis{}, fmt.Errorf("inspect container: %w", err)
@@ -33,6 +36,7 @@ func (a *Agent) fallback(ctx context.Context, containerID string) (domain.Diagno
 	diagnosis.Steps = append(diagnosis.Steps, domain.Step{Tool: "inspect_container", Summary: "Inspected container state and exit information"})
 	diagnosis.Evidence = appendEvidence(diagnosis.Evidence, inspectionEvidence(inspection)...)
 
+	toolCalls++
 	logs, logErr := a.docker.ContainerLogs(ctx, containerID, domain.LogOptions{Tail: min(200, a.maxLogLines)})
 	logShowsOOM := false
 	if logErr == nil {
@@ -41,6 +45,18 @@ func (a *Agent) fallback(ctx context.Context, containerID string) (domain.Diagno
 		logSignals := logEvidence(logs)
 		logShowsOOM = len(logSignals) > 0
 		diagnosis.Evidence = appendEvidence(diagnosis.Evidence, logSignals...)
+	}
+
+	// The no-provider demo can show the same sanitized event evidence without
+	// contacting a model. This optional extra read must fit the run budgets.
+	usedBytes := len(mustJSON(inspection)) + len(mustJSON(logs))
+	if a.docker.Mode() == "demo" && toolCalls < a.maxToolCalls && usedBytes < a.maxToolOutputBytes {
+		now := a.now().Unix()
+		events, eventErr := a.docker.ContainerEvents(ctx, containerID, domain.EventOptions{Since: now - 3601, Until: now - 1})
+		if eventErr == nil && len(mustJSON(events)) <= a.maxToolOutputBytes-usedBytes {
+			diagnosis.Steps = append(diagnosis.Steps, domain.Step{Tool: "get_container_events", Summary: "Read retained demo events; history may be incomplete"})
+			diagnosis.Evidence = appendEvidence(diagnosis.Evidence, eventEvidence(events)...)
+		}
 	}
 
 	if inspection.OOMKilled {

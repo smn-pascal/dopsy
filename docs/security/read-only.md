@@ -14,6 +14,14 @@ Mounting `/var/run/docker.sock` with `:ro` only makes the socket file mount read
 
 Instead, a small companion proxy owns the socket and accepts only an exact allowlist of HTTP `GET`/`HEAD` routes and query parameters needed for diagnostics. Broad container endpoints such as filesystem export, archive access, process listings, and every mutating method are denied. Container-list and inspect responses are reduced to the diagnostic fields Dopsy needs. The proxy is reachable only on an internal Docker network.
 
+`/events` is allowed only with one container filter, the exact diagnostic
+action/type filters, and both past time endpoints with a maximum 24-hour span.
+Unfiltered and open-ended streams remain denied. Event responses are bounded
+and rebuilt from action, actor ID, type, and timestamp only. The gateway
+removes the actor ID/type again before returning public diagnostic facts.
+Arbitrary event attributes (which can include labels and command text) never
+cross the proxy boundary.
+
 ::: danger Treat Docker access as privileged
 The proxy substantially narrows the exposed API surface, but it is not a perfect
 sandbox. Keep Dopsy bound to localhost unless it is behind authentication and a

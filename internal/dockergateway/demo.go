@@ -135,3 +135,25 @@ func clampTail(tail int) int {
 	}
 	return tail
 }
+
+func (d *DemoGateway) ContainerEvents(_ context.Context, id string, options domain.EventOptions) (domain.Events, error) {
+	if !validContainerID(id) {
+		return domain.Events{}, ErrInvalidContainer
+	}
+	if !validEventWindow(options, d.now().Unix()) {
+		return domain.Events{}, fmt.Errorf("invalid event window")
+	}
+	if id != "demo-api" && id != "demo-database" {
+		return domain.Events{}, fmt.Errorf("container not found")
+	}
+	result := domain.Events{Items: make([]domain.ContainerEvent, 0), Since: options.Since, Until: options.Until, HistoryLimited: true}
+	if id == "demo-api" {
+		at := d.now().Add(-4 * time.Minute).Unix()
+		for _, event := range []domain.ContainerEvent{{Action: "start", Time: d.now().Add(-37 * time.Minute).Unix()}, {Action: "oom", Time: at - 1}, {Action: "die", Time: at}, {Action: "stop", Time: at + 1}} {
+			if event.Time >= options.Since && event.Time <= options.Until {
+				result.Items = append(result.Items, event)
+			}
+		}
+	}
+	return result, nil
+}

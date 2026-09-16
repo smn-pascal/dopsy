@@ -140,6 +140,10 @@ recent logs, current resource statistics, model-guided tool calls, and visible
 supporting evidence. Historical metrics, authentication, multi-host operation,
 alerting, and automated remediation are not implemented.
 
+The development branch additionally reads bounded retained lifecycle/health
+events for individual containers. These are Docker's limited recent buffer,
+not a complete or persisted event archive; see [how it works](docs/guide/how-it-works.md).
+
 See the [roadmap](ROADMAP.md), [changelog](CHANGELOG.md), [live documentation](https://smn-pascal.github.io/dopsy/), and [contribution guide](CONTRIBUTING.md).
 
 ## License

@@ -38,6 +38,10 @@ func (gateway *overviewGateway) ContainerLogs(context.Context, string, domain.Lo
 	return domain.Logs{}, errors.New("overview must not read logs")
 }
 
+func (gateway *overviewGateway) ContainerEvents(context.Context, string, domain.EventOptions) (domain.Events, error) {
+	return domain.Events{}, errors.New("overview must not read events")
+}
+
 func readOverview(t *testing.T, handler http.Handler) (int, domain.Overview) {
 	t.Helper()
 	request := httptest.NewRequest(http.MethodGet, "/api/overview", nil)

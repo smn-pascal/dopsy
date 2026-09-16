@@ -59,4 +59,4 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:18080/api/overview |
             node -e 'const value=JSON.parse(require("fs").readFileSync(0,"utf8")); if(value.summary.total<2 || !value.containers.some(item=>item.id==="demo-api" && item.details?.oomKilled)) process.exit(1)'
           curl --fail --silent --show-error --header 'Content-Type: application/json' --data '{"message":"Why did demo-api stop?","containerId":"demo-api"}' http://127.0.0.1:18080/api/chat |
-            node -e 'const value=JSON.parse(require("fs").readFileSync(0,"utf8")); if(typeof value.answer!=="string" || !value.answer.trim() || !Array.isArray(value.evidence)) process.exit(1)'
+            node -e 'const value=JSON.parse(require("fs").readFileSync(0,"utf8")); if(typeof value.answer!=="string" || !value.answer.trim() || !value.evidence?.some(item=>item.label==="Event history") || !value.steps?.some(item=>item.tool==="get_container_events")) process.exit(1)'

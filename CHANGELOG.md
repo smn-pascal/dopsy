@@ -9,6 +9,9 @@ All notable changes to Dopsy are documented in this file. The project follows
 
 - An opt-in, visible-tab-only dashboard refresh that reads at most once per
   minute and does not overlap an existing snapshot request.
+- A scoped, bounded tool for retained Docker lifecycle and health events,
+  with chronological action/time evidence and an explicit incomplete-history
+  warning. The no-key demo includes fixed event facts when budgets allow.
 
 ## [0.1.3] - 2026-09-15
 

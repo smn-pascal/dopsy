@@ -2,6 +2,7 @@ package dockergateway
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,9 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strconv"
+	"time"
+
+	"github.com/smn-pascal/dopsy/internal/domain"
 )
 
 func NewReadOnlyProxy(socketPath string) http.Handler {
@@ -32,6 +36,11 @@ func NewReadOnlyProxyWithTransport(upstream http.RoundTripper) http.Handler {
 			return
 		}
 		writer.Header().Set("X-Content-Type-Options", "nosniff")
+		if classifyDockerPath(normalizedDockerPath(request.URL.Path)) == routeContainerEvents {
+			ctx, cancel := context.WithTimeout(request.Context(), 12*time.Second)
+			defer cancel()
+			request = request.WithContext(ctx)
+		}
 		proxy.ServeHTTP(writer, request)
 	})
 }
@@ -51,9 +60,45 @@ func sanitizeProxyResponse(response *http.Response) error {
 		return sanitizeContainerListResponse(response)
 	case routeContainerInspect:
 		return sanitizeInspectResponse(response)
+	case routeContainerEvents:
+		return sanitizeEventsResponse(response)
 	default:
 		return nil
 	}
+}
+
+func sanitizeEventsResponse(response *http.Response) error {
+	query := response.Request.URL.Query()
+	id, ok := decodeEventFilters(query.Get("filters"))
+	if !ok {
+		return ErrBlockedRequest
+	}
+	since, _ := strconv.ParseInt(query.Get("since"), 10, 64)
+	until, _ := strconv.ParseInt(query.Get("until"), 10, 64)
+	defer response.Body.Close()
+	events, truncated, err := readEvents(response.Body, id, domain.EventOptions{Since: since, Until: until})
+	if err != nil {
+		return err
+	}
+	var body bytes.Buffer
+	encoder := json.NewEncoder(&body)
+	for _, event := range events {
+		if err := encoder.Encode(event); err != nil {
+			return err
+		}
+	}
+	response.Body = io.NopCloser(bytes.NewReader(body.Bytes()))
+	response.ContentLength = int64(body.Len())
+	if response.Header == nil {
+		response.Header = make(http.Header)
+	}
+	response.Header.Del(eventsTruncatedHeader)
+	if truncated {
+		response.Header.Set(eventsTruncatedHeader, "true")
+	}
+	response.Header.Set("Content-Length", strconv.Itoa(body.Len()))
+	response.Header.Set("Content-Type", "application/x-ndjson")
+	return nil
 }
 
 func sanitizeContainerListResponse(response *http.Response) error {

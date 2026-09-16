@@ -25,4 +25,5 @@ type Gateway interface {
 	InspectContainer(context.Context, string) (domain.Inspection, error)
 	ContainerLogs(context.Context, string, domain.LogOptions) (domain.Logs, error)
 	ContainerStats(context.Context, string) (domain.Stats, error)
+	ContainerEvents(context.Context, string, domain.EventOptions) (domain.Events, error)
 }

@@ -29,6 +29,7 @@ const (
 	routeContainerInspect
 	routeContainerLogs
 	routeContainerStats
+	routeContainerEvents
 )
 
 // AllowlistTransport is a defense-in-depth boundary around the Docker API. It
@@ -80,6 +81,8 @@ func AllowedDockerRequest(request *http.Request) bool {
 		return validContainerLogsQuery(query, time.Now().Unix())
 	case routeContainerStats:
 		return validContainerStatsQuery(query)
+	case routeContainerEvents:
+		return validContainerEventsQuery(query, time.Now().Unix())
 	default:
 		return false
 	}
@@ -103,6 +106,8 @@ func classifyDockerPath(path string) dockerRoute {
 		return routeVersion
 	case "/containers/json":
 		return routeContainerList
+	case "/events":
+		return routeContainerEvents
 	}
 	parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
 	if len(parts) != 3 || parts[0] != "containers" || !validContainerID(parts[1]) {

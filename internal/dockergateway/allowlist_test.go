@@ -39,7 +39,7 @@ func TestAllowedDockerRequest(t *testing.T) {
 		{name: "bounded logs", method: http.MethodGet, target: "http://docker/containers/abc123/logs?tail=2000&stdout=1&stderr=true&timestamps=1&since=100&until=86500", allowed: true},
 		{name: "non-streaming stats", method: http.MethodGet, target: "http://docker/containers/abc123/stats?stream=false", allowed: true},
 		{name: "non-streaming stats zero", method: http.MethodGet, target: "http://docker/containers/abc123/stats?stream=0", allowed: true},
-		{name: "events removed", method: http.MethodGet, target: "http://docker/events", allowed: false},
+		{name: "unbounded events rejected", method: http.MethodGet, target: "http://docker/events", allowed: false},
 		{name: "post list", method: http.MethodPost, target: "http://docker/containers/json", allowed: false},
 		{name: "delete", method: http.MethodDelete, target: "http://docker/containers/abc123", allowed: false},
 		{name: "archive", method: http.MethodGet, target: "http://docker/containers/abc123/archive", allowed: false},

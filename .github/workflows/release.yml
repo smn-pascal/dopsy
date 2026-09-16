@@ -64,7 +64,7 @@ jobs:
           curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 1 http://127.0.0.1:18081/api/health |
             node -e 'const value=JSON.parse(require("fs").readFileSync(0,"utf8")); if(value.status!=="ok" || !value.docker.connected || value.docker.mode!=="demo") process.exit(1)'
           curl --fail --silent --show-error --header 'Content-Type: application/json' --data '{"message":"Why did demo-api stop?","containerId":"demo-api"}' http://127.0.0.1:18081/api/chat |
-            node -e 'const value=JSON.parse(require("fs").readFileSync(0,"utf8")); if(typeof value.answer!=="string" || !value.answer.trim() || !Array.isArray(value.evidence)) process.exit(1)'
+            node -e 'const value=JSON.parse(require("fs").readFileSync(0,"utf8")); if(typeof value.answer!=="string" || !value.answer.trim() || !value.evidence?.some(item=>item.label==="Event history") || !value.steps?.some(item=>item.tool==="get_container_events")) process.exit(1)'
 
   release:
     needs: images

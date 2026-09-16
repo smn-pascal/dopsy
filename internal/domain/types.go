@@ -50,6 +50,25 @@ type Stats struct {
 	ReadAt        int64   `json:"readAt"`
 }
 
+type EventOptions struct {
+	Since int64
+	Until int64
+}
+
+// ContainerEvent contains no actor attributes, labels, commands, or host paths.
+type ContainerEvent struct {
+	Action string `json:"action"`
+	Time   int64  `json:"time"`
+}
+
+type Events struct {
+	Items          []ContainerEvent `json:"items"`
+	Since          int64            `json:"since"`
+	Until          int64            `json:"until"`
+	Truncated      bool             `json:"truncated"`
+	HistoryLimited bool             `json:"historyLimited"`
+}
+
 type Evidence struct {
 	Label    string `json:"label"`
 	Value    string `json:"value"`

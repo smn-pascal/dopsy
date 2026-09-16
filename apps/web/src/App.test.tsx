@@ -174,6 +174,51 @@ describe("Dopsy app", () => {
     });
   });
 
+  it("shows retained event facts with the incomplete-history warning", async () => {
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url.endsWith("/api/health")) return jsonResponse(health);
+      if (url.endsWith("/api/containers")) return jsonResponse(containers);
+      if (url.endsWith("/api/overview")) return jsonResponse(overview);
+      return jsonResponse({
+        conversationId: "event-conversation",
+        answer: "Docker retained an OOM event before the exit.",
+        evidence: [
+          {
+            label: "Event history",
+            value: "Limited Docker buffer; not a complete archive",
+            severity: "warning",
+          },
+          {
+            label: "Docker event",
+            value: "oom · 2026-09-16T12:00:00Z",
+            severity: "critical",
+          },
+        ],
+        steps: [
+          {
+            tool: "get_container_events",
+            summary:
+              "Read retained container events; history may be incomplete",
+          },
+        ],
+      });
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(
+      await screen.findByRole("button", { name: "api untersuchen" }),
+    );
+    await user.type(screen.getByLabelText("Dopsy fragen"), "What happened?");
+    await user.click(screen.getByLabelText("Frage senden"));
+    expect(
+      await screen.findByText("oom · 2026-09-16T12:00:00Z"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/not a complete archive/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Diagnoseschritte/i }));
+    expect(screen.getByText("get_container_events")).toBeInTheDocument();
+  });
+
   it("shows a useful API connection error", async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new Error("offline"));
     render(<App />);
