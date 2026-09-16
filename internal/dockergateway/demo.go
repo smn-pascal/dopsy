@@ -86,16 +86,41 @@ func (d *DemoGateway) ContainerLogs(_ context.Context, id string, options domain
 		return domain.Logs{}, ErrInvalidContainer
 	}
 	tail := clampTail(options.Tail)
-	var text string
+	now := d.now()
+	type entry struct {
+		at   time.Time
+		text string
+	}
+	var entries []entry
 	switch id {
 	case "demo-api":
-		text = "2026-09-09T00:01:39Z WARN memory usage reached 248 MiB of 256 MiB\n" +
-			"2026-09-09T00:01:41Z ERROR allocation failed: JavaScript heap out of memory\n" +
-			"2026-09-09T00:01:42Z INFO process terminated with signal SIGKILL\n"
+		stopped := now.Add(-4 * time.Minute)
+		entries = []entry{
+			{stopped.Add(-3 * time.Second), "WARN memory usage reached 248 MiB of 256 MiB"},
+			{stopped.Add(-time.Second), "ERROR allocation failed: JavaScript heap out of memory"},
+			{stopped, "INFO process terminated with signal SIGKILL"},
+		}
 	case "demo-database":
-		text = "2026-09-09T00:01:42Z LOG database system is ready to accept connections\n"
+		entries = []entry{{now.Add(-48 * time.Hour), "LOG database system is ready to accept connections"}}
 	default:
 		return domain.Logs{}, fmt.Errorf("container %q not found", id)
+	}
+	lines := make([]string, 0, len(entries))
+	for _, item := range entries {
+		if options.Since > 0 && item.at.Unix() < options.Since {
+			continue
+		}
+		if options.Until > 0 && item.at.Unix() > options.Until {
+			continue
+		}
+		lines = append(lines, item.at.UTC().Format(time.RFC3339)+" "+item.text)
+	}
+	if len(lines) > tail {
+		lines = lines[len(lines)-tail:]
+	}
+	text := strings.Join(lines, "\n")
+	if text != "" {
+		text += "\n"
 	}
 	return domain.Logs{Text: text, Tail: tail, Truncated: false}, nil
 }

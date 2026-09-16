@@ -13,6 +13,11 @@ All notable changes to Dopsy are documented in this file. The project follows
   with chronological action/time evidence and an explicit incomplete-history
   warning. The no-key demo includes fixed event facts when budgets allow.
 
+### Fixed
+
+- Demo log timestamps now align with the sample inspection and event times;
+  demo log reads respect time windows and tail limits.
+
 ## [0.1.3] - 2026-09-15
 
 ### Added

@@ -81,3 +81,7 @@ During a model-guided diagnosis, selected event facts and the history warning
 are shown alongside the explanation as evidence. The no-provider demo also
 includes fixed sample OOM/exit events when the extra read fits the run budgets;
 it never queries a production Docker daemon.
+
+Demo inspection, log excerpts, and event records use the same relative example
+times. Demo log reads honor the requested time window and tail limit, so an
+unrelated time window does not return the sample crash logs.
