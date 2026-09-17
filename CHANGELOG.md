@@ -12,11 +12,18 @@ All notable changes to Dopsy are documented in this file. The project follows
 - A scoped, bounded tool for retained Docker lifecycle and health events,
   with chronological action/time evidence and an explicit incomplete-history
   warning. The no-key demo includes fixed event facts when budgets allow.
+- An explicit new-diagnosis control that resets chat context and drafts while
+  preserving container selection, plus actionable expired-session recovery
+  without automatic provider retries.
 
 ### Fixed
 
 - Demo log timestamps now align with the sample inspection and event times;
   demo log reads respect time windows and tail limits.
+- Retrying an older all-container question no longer inherits a later
+  container selection or conversation identifier.
+- The development web proxy now preserves the browser-facing host, allowing
+  chat POSTs without weakening the API's cross-origin rejection.
 
 ## [0.1.3] - 2026-09-15
 

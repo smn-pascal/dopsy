@@ -100,4 +100,5 @@ export type ChatMessage =
       content: string;
       originalMessage: string;
       containerId?: string;
+      retryWithoutContext?: boolean;
     };

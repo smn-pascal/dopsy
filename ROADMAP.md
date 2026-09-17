@@ -16,10 +16,10 @@ The roadmap protects Dopsy's core identity: lightweight, diagnostic, evidence-ba
 
 ## v0.2 — Better investigation
 
-- Docker lifecycle and health events
-- Conversation management and explicit new-chat controls
-- Progressive run events in the UI
-- Stronger local log clustering and redaction
+- [x] Bounded retained Docker lifecycle and health events (on `main`)
+- [x] Explicit new-chat controls and expired-session recovery (on `main`)
+- [ ] Progressive run events in the UI
+- [ ] Stronger local log clustering and redaction
 
 ## v0.3 — Bring your own model
 

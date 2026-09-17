@@ -75,6 +75,15 @@ function jsonResponse(body: unknown, ok = true, status = 200) {
   } as Response);
 }
 
+function chatBodies() {
+  return vi
+    .mocked(fetch)
+    .mock.calls.filter(([request]) => request.toString().endsWith("/api/chat"))
+    .map(
+      ([, init]) => JSON.parse(String(init?.body)) as Record<string, string>,
+    );
+}
+
 describe("Dopsy app", () => {
   beforeEach(() => {
     Object.defineProperty(globalThis, "crypto", {
@@ -386,6 +395,259 @@ describe("Dopsy app", () => {
         message: "Explain this snapshot",
         containerId: "container-1",
       });
+    });
+  });
+
+  it("starts a new diagnosis without sending anything or losing the container scope", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    expect(
+      screen.queryByRole("button", { name: "Neue Diagnose" }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      await screen.findByRole("button", { name: "api untersuchen" }),
+    );
+    const input = screen.getByLabelText("Dopsy fragen");
+    await user.type(input, "First question");
+    await user.click(screen.getByLabelText("Frage senden"));
+    await screen.findByText("The API container looks healthy.");
+    await user.type(input, "Unsent draft");
+
+    await user.click(screen.getByRole("button", { name: "Neue Diagnose" }));
+
+    expect(screen.queryByText("First question")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("The API container looks healthy."),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Was möchtest du wissen?")).toBeInTheDocument();
+    expect(input).toHaveValue("");
+    expect(input).toHaveFocus();
+    expect(
+      screen.getByLabelText("Container-Auswahl aufheben"),
+    ).toBeInTheDocument();
+    expect(chatBodies()).toHaveLength(1);
+
+    await user.type(input, "New question");
+    await user.click(screen.getByLabelText("Frage senden"));
+    await screen.findByText("The API container looks healthy.");
+    expect(chatBodies()).toEqual([
+      { message: "First question", containerId: "container-1" },
+      { message: "New question", containerId: "container-1" },
+    ]);
+  });
+
+  it("does not reset a running diagnosis", async () => {
+    let finishRequest!: (response: Response) => void;
+    vi.mocked(fetch)
+      .mockImplementationOnce(() => jsonResponse(health))
+      .mockImplementationOnce(() => jsonResponse(containers))
+      .mockImplementationOnce(() => jsonResponse(overview))
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            finishRequest = resolve;
+          }),
+      );
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Diagnose" }));
+    await user.type(screen.getByLabelText("Dopsy fragen"), "Pending question");
+    await user.click(screen.getByLabelText("Frage senden"));
+    const resetButton = screen.getByRole("button", { name: "Neue Diagnose" });
+    expect(resetButton).toBeDisabled();
+    await user.click(resetButton);
+    expect(screen.getByText("Pending question")).toBeInTheDocument();
+
+    await act(async () => {
+      finishRequest(
+        await jsonResponse({
+          conversationId: "pending-session",
+          answer: "Finished diagnosis",
+          evidence: [],
+          steps: [],
+        }),
+      );
+    });
+    await screen.findByText("Finished diagnosis");
+    expect(resetButton).toBeEnabled();
+    await user.type(screen.getByLabelText("Dopsy fragen"), "Follow up");
+    await user.click(screen.getByLabelText("Frage senden"));
+    await screen.findByText("The API container looks healthy.");
+    expect(chatBodies()[1]).toEqual({
+      message: "Follow up",
+      conversationId: "pending-session",
+    });
+  });
+
+  it.each(["retry button", "composer"])(
+    "recovers an expired session using the %s without automatic retries",
+    async (method) => {
+      let chatCount = 0;
+      vi.mocked(fetch).mockImplementation((request) => {
+        const url = request.toString();
+        if (url.endsWith("/api/health")) return jsonResponse(health);
+        if (url.endsWith("/api/containers")) return jsonResponse(containers);
+        if (url.endsWith("/api/overview")) return jsonResponse(overview);
+        chatCount += 1;
+        if (chatCount === 2)
+          return jsonResponse(
+            { error: "conversation not found or expired" },
+            false,
+            404,
+          );
+        return jsonResponse({
+          conversationId: `session-${chatCount}`,
+          answer: `Answer ${chatCount}`,
+          evidence: [],
+          steps: [],
+        });
+      });
+      const user = userEvent.setup();
+      render(<App />);
+      await user.click(
+        await screen.findByRole("button", { name: "api untersuchen" }),
+      );
+      const input = screen.getByLabelText("Dopsy fragen");
+      await user.type(input, "First question");
+      await user.click(screen.getByLabelText("Frage senden"));
+      await screen.findByText("Answer 1");
+      await user.type(input, "Follow up");
+      await user.click(screen.getByLabelText("Frage senden"));
+      const retry = await screen.findByRole("button", {
+        name: "Als neue Diagnose senden",
+      });
+
+      expect(
+        screen.getByText(/Diese Sitzung ist abgelaufen/),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Answer 1")).toBeInTheDocument();
+      expect(chatBodies()).toHaveLength(2);
+      expect(input).toBeEnabled();
+
+      if (method === "retry button") {
+        await user.click(retry);
+      } else {
+        await user.type(input, "Fresh question");
+        await user.click(screen.getByLabelText("Frage senden"));
+      }
+      await screen.findByText("Answer 3");
+      expect(chatBodies()[2]).toEqual({
+        message: method === "retry button" ? "Follow up" : "Fresh question",
+        containerId: "container-1",
+      });
+      await user.type(input, "Next follow up");
+      await user.click(screen.getByLabelText("Frage senden"));
+      await screen.findByText("Answer 4");
+      expect(chatBodies()[3]).toEqual({
+        message: "Next follow up",
+        containerId: "container-1",
+        conversationId: "session-3",
+      });
+    },
+  );
+
+  it.each([
+    [404, "API endpoint not found"],
+    [409, "a diagnosis is already running for this conversation"],
+  ])(
+    "does not mistake unrelated errors (%s) for expired sessions",
+    async (status, error) => {
+      const user = userEvent.setup();
+      render(<App />);
+      await user.click(await screen.findByRole("button", { name: "Diagnose" }));
+      const input = screen.getByLabelText("Dopsy fragen");
+      await user.type(input, "First question");
+      await user.click(screen.getByLabelText("Frage senden"));
+      await screen.findByText("The API container looks healthy.");
+      vi.mocked(fetch).mockImplementationOnce(() =>
+        jsonResponse({ error }, false, status),
+      );
+      await user.type(input, "Follow up");
+      await user.click(screen.getByLabelText("Frage senden"));
+      expect(await screen.findByText(error)).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Als neue Diagnose senden" }),
+      ).not.toBeInTheDocument();
+      await user.click(
+        screen.getByRole("button", { name: "Erneut versuchen" }),
+      );
+      await waitFor(() => expect(chatBodies()).toHaveLength(3));
+      expect(chatBodies()[2]).toEqual({
+        message: "Follow up",
+        conversationId: "conversation-1",
+      });
+    },
+  );
+
+  it("retries an all-container question without attaching the currently selected container or conversation", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Diagnose" }));
+    vi.mocked(fetch).mockRejectedValueOnce(new Error("offline"));
+    const input = screen.getByLabelText("Dopsy fragen");
+    await user.type(input, "Stack question");
+    await user.click(screen.getByLabelText("Frage senden"));
+    await screen.findByRole("button", { name: "Erneut versuchen" });
+    await user.click(screen.getByText("api"));
+    await user.type(input, "Container question");
+    await user.click(screen.getByLabelText("Frage senden"));
+    await screen.findByText("The API container looks healthy.");
+    await user.click(screen.getByRole("button", { name: "Erneut versuchen" }));
+    await waitFor(() =>
+      expect(
+        screen.getAllByText("The API container looks healthy."),
+      ).toHaveLength(2),
+    );
+    await user.type(input, "Container follow up");
+    await user.click(screen.getByLabelText("Frage senden"));
+    await waitFor(() => expect(chatBodies()).toHaveLength(4));
+    expect(chatBodies()).toEqual([
+      { message: "Stack question" },
+      { message: "Container question", containerId: "container-1" },
+      { message: "Stack question" },
+      {
+        message: "Container follow up",
+        containerId: "container-1",
+        conversationId: "conversation-1",
+      },
+    ]);
+  });
+
+  it("does not reattach a late response after switching away from and back to the same scope", async () => {
+    let finishRequest!: (response: Response) => void;
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(
+      await screen.findByRole("button", { name: "api untersuchen" }),
+    );
+    vi.mocked(fetch).mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          finishRequest = resolve;
+        }),
+    );
+    const input = screen.getByLabelText("Dopsy fragen");
+    await user.type(input, "Pending question");
+    await user.click(screen.getByLabelText("Frage senden"));
+    await user.click(screen.getByText("Alle Container"));
+    await user.click(screen.getByText("api"));
+    await act(async () => {
+      finishRequest(
+        await jsonResponse({
+          conversationId: "stale-session",
+          answer: "Late answer",
+          evidence: [],
+          steps: [],
+        }),
+      );
+    });
+    await screen.findByText("Late answer");
+    await user.type(input, "Fresh question");
+    await user.click(screen.getByLabelText("Frage senden"));
+    await screen.findByText("The API container looks healthy.");
+    expect(chatBodies()[1]).toEqual({
+      message: "Fresh question",
+      containerId: "container-1",
     });
   });
 

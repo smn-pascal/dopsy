@@ -595,8 +595,32 @@ input:focus-visible {
 }
 .topbar-actions {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 18px;
+}
+
+.new-diagnosis-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.new-diagnosis-button:hover:not(:disabled) {
+  background: var(--accent-pale);
+  border-color: var(--accent);
+}
+
+.new-diagnosis-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .mode-label,
@@ -1589,6 +1613,9 @@ input:focus-visible {
 
   .mode-label {
     font-size: 9px;
+  }
+  .topbar-actions {
+    gap: 8px;
   }
   .global-alert {
     margin: 10px 10px -1px;

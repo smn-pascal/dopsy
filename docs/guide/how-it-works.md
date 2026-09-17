@@ -40,6 +40,28 @@ server issues an opaque conversation identifier; the browser returns it only for
 the same container scope. Raw tool output is not retained as chat history, and
 all in-memory sessions disappear when Dopsy restarts.
 
+### Starting a new diagnosis
+
+On the development branch, **Neue Diagnose** clears the visible chat and any
+unsent draft, forgets its conversation identifier, and keeps the selected
+container. It sends no request by itself; the next question starts fresh,
+without previous conversation context. The control is disabled while a
+diagnosis is running, so a reset cannot discard an in-flight answer.
+
+This is a workspace reset, not an immediate server-side deletion. Old context
+remains subject to the bounded in-memory store: sessions become unavailable
+after 30 minutes of inactivity by default, can be evicted when capacity is
+needed, and disappear on server restart. Expired entries are cleaned up when
+the next diagnosis begins. No browser persistence or conversation archive is
+introduced.
+
+If a follow-up reaches a session that has expired or disappeared, Dopsy keeps
+the visible messages, explains that the old context is unavailable, and offers
+**Als neue Diagnose senden**. Only clicking that button or submitting a new
+question starts another request, without the expired identifier. There is no
+automatic provider retry. Retrying an older error retains that question's
+original container scope, not a later selection.
+
 The current release does not store historical metrics. Dashboard values are a
 point-in-time snapshot, and a diagnosis must state when requested evidence is
 unavailable.

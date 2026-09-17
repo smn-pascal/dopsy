@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { api } from "./api";
+import { api, ApiError } from "./api";
 import { version as dopsyVersion } from "../package.json";
 import Dashboard from "./components/Dashboard";
 import type {
@@ -43,6 +43,7 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
     menu: <path d="M4 7h16M4 12h16M4 17h16" />,
     close: <path d="m6 6 12 12M18 6 6 18" />,
+    plus: <path d="M12 5v14M5 12h14" />,
     search: (
       <path d="m21 21-4.35-4.35m2.35-5.15A7.5 7.5 0 1 1 4 11.5a7.5 7.5 0 0 1 15 0Z" />
     ),
@@ -727,16 +728,28 @@ export default function App() {
     setActiveView("investigate");
   };
 
+  const newDiagnosis = () => {
+    if (sending) return;
+    scopeVersionRef.current += 1;
+    setConversationId(undefined);
+    setMessages([]);
+    setInput("");
+    textareaRef.current?.focus();
+  };
+
   const submitMessage = async (
     message: string,
-    containerId = selectedId,
-    requestConversationId = conversationId,
+    containerId: string | undefined,
+    requestConversationId: string | undefined,
   ) => {
     const trimmed = message.trim();
     if (!trimmed || sending) return;
 
     const requestScopeVersion = scopeVersionRef.current;
     const belongsToCurrentScope = containerId === selectedId;
+    if (belongsToCurrentScope && !requestConversationId) {
+      setConversationId(undefined);
+    }
     const container = containers.find((item) => item.id === containerId);
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -771,17 +784,31 @@ export default function App() {
         },
       ]);
     } catch (error) {
+      const sessionExpired =
+        !!requestConversationId &&
+        error instanceof ApiError &&
+        error.status === 404 &&
+        error.message === "conversation not found or expired";
+      if (
+        sessionExpired &&
+        belongsToCurrentScope &&
+        scopeVersionRef.current === requestScopeVersion
+      ) {
+        setConversationId(undefined);
+      }
       setMessages((current) => [
         ...current,
         {
           id: crypto.randomUUID(),
           role: "error",
-          content:
-            error instanceof Error
+          content: sessionExpired
+            ? "Diese Sitzung ist abgelaufen oder wurde beendet. Sende die Frage als neue Diagnose – ohne den bisherigen Gesprächskontext."
+            : error instanceof Error
               ? error.message
               : "Die Diagnose ist fehlgeschlagen.",
           originalMessage: trimmed,
           containerId,
+          retryWithoutContext: sessionExpired,
         },
       ]);
     } finally {
@@ -792,13 +819,15 @@ export default function App() {
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
-    void submitMessage(input);
+    void submitMessage(input, selectedId, conversationId);
   };
 
   const onTextareaKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      if (input.trim()) void submitMessage(input);
+      if (input.trim()) {
+        void submitMessage(input, selectedId, conversationId);
+      }
     }
   };
 
@@ -849,6 +878,16 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-actions">
+            {activeView === "investigate" && (
+              <button
+                className="new-diagnosis-button"
+                disabled={sending}
+                onClick={newDiagnosis}
+                title="Chat leeren und neu beginnen; Container-Auswahl bleibt erhalten"
+              >
+                <Icon name="plus" size={15} /> Neue Diagnose
+              </button>
+            )}
             {health?.docker.mode === "demo" && (
               <span className="mode-label">Demodaten</span>
             )}
@@ -919,7 +958,9 @@ export default function App() {
                   {messages.length === 0 ? (
                     <EmptyState
                       disabled={inputDisabled}
-                      onPrompt={(prompt) => void submitMessage(prompt)}
+                      onPrompt={(prompt) =>
+                        void submitMessage(prompt, selectedId, conversationId)
+                      }
                     />
                   ) : (
                     <div className="message-list" aria-live="polite">
@@ -964,15 +1005,18 @@ export default function App() {
                                     void submitMessage(
                                       message.originalMessage,
                                       message.containerId,
-                                      message.containerId === selectedId
+                                      !message.retryWithoutContext &&
+                                        message.containerId === selectedId
                                         ? conversationId
                                         : undefined,
                                     )
                                   }
                                   disabled={sending}
                                 >
-                                  <Icon name="refresh" size={14} /> Erneut
-                                  versuchen
+                                  <Icon name="refresh" size={14} />{" "}
+                                  {message.retryWithoutContext
+                                    ? "Als neue Diagnose senden"
+                                    : "Erneut versuchen"}
                                 </button>
                               </div>
                             </article>
