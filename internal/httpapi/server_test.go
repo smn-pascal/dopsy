@@ -142,6 +142,37 @@ func TestAPIRejectsCrossOrigin(t *testing.T) {
 	}
 }
 
+func TestChatOriginThroughDevelopmentProxy(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name   string
+		host   string
+		origin string
+		site   string
+		want   int
+	}{
+		{name: "preserved browser host", host: "127.0.0.1:5173", origin: "http://127.0.0.1:5173", site: "same-origin", want: http.StatusOK},
+		{name: "localhost browser host", host: "localhost:5173", origin: "http://localhost:5173", site: "same-origin", want: http.StatusOK},
+		{name: "rewritten upstream host", host: "127.0.0.1:3001", origin: "http://127.0.0.1:5173", site: "same-origin", want: http.StatusForbidden},
+		{name: "untrusted origin", host: "127.0.0.1:5173", origin: "https://attacker.example", site: "cross-site", want: http.StatusForbidden},
+		{name: "cross-site metadata", host: "127.0.0.1:5173", origin: "http://127.0.0.1:5173", site: "cross-site", want: http.StatusForbidden},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			request := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:3001/api/chat", strings.NewReader(`{"message":"diagnose demo"}`))
+			request.Host = test.host
+			request.Header.Set("Origin", test.origin)
+			request.Header.Set("Sec-Fetch-Site", test.site)
+			request.Header.Set("Content-Type", "application/json")
+			response := httptest.NewRecorder()
+			testHandler(t).ServeHTTP(response, request)
+			if response.Code != test.want {
+				t.Fatalf("status = %d, want %d", response.Code, test.want)
+			}
+		})
+	}
+}
+
 func TestStaticSPAFallback(t *testing.T) {
 	t.Parallel()
 	directory := t.TempDir()

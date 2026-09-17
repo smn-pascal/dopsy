@@ -95,6 +95,7 @@ export default defineConfig({
         text: "Guide",
         items: [
           { text: "Getting started", link: "/guide/getting-started" },
+          { text: "Local development", link: "/guide/development" },
           { text: "Dashboard", link: "/guide/dashboard" },
           { text: "How it works", link: "/guide/how-it-works" },
         ],
